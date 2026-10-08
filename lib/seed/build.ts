@@ -2921,8 +2921,17 @@ export function buildSeed(anchor: Date = new Date()): SeedData {
 let cached: { day: string; data: SeedData } | null = null;
 
 /** Memoised seed for the current day; returns a deep copy so stores never share references. */
-export function getSeed(anchor: Date = new Date()): SeedData {
+function cachedSeed(anchor: Date): SeedData {
   const key = todayIso(anchor);
   if (!cached || cached.day !== key) cached = { day: key, data: buildSeed(anchor) };
-  return structuredClone(cached.data);
+  return cached.data;
+}
+
+export function getSeed(anchor: Date = new Date()): SeedData {
+  return structuredClone(cachedSeed(anchor));
+}
+
+/** Deep copy of a single collection of today's seed (used for store initial state). */
+export function seedSlice<K extends keyof SeedData>(key: K, anchor: Date = new Date()): SeedData[K] {
+  return structuredClone(cachedSeed(anchor)[key]);
 }
