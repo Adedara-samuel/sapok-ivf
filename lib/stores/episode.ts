@@ -5,7 +5,6 @@ import {
   type Episode,
   type EpisodeType,
 } from "@/lib/schemas/episode";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { assert, createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -28,11 +27,11 @@ export interface EpisodeState {
   update: (id: string, patch: Partial<Pick<Episode, "doctorId" | "diagnosis" | "type" | "status">>) => Episode;
   close: (id: string, input: CloseEpisodeInput) => Episode;
   reopen: (id: string) => Episode;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useEpisodeStore = createDomainStore<EpisodeState>("episodes", (set, get) => ({
-  episodes: seedSlice("episodes"),
+  episodes: [],
   open: (input, ivfPrefix = "IVF-2026") => {
     const existing = get().episodes.find((e) => e.patientId === input.patientId && e.status !== "closed");
     assert(!existing, `An open episode already exists (${existing?.ivfNo ?? ""}). Close it before opening a new one.`);
@@ -108,7 +107,7 @@ export const useEpisodeStore = createDomainStore<EpisodeState>("episodes", (set,
     audit("update", "episode", `Reopened file ${next.ivfNo} (approval ${approval.id})`, id);
     return next;
   },
-  reset: (seed = getSeed()) =>
+  reset: (seed) =>
     set((s) => {
       s.episodes = seed.episodes;
     }),

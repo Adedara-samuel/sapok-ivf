@@ -1,8 +1,8 @@
 {
-  "name": "ovacare-ivf",
+  "name": "rhv-ivf",
   "version": "1.0.0",
   "private": true,
-  "description": "OvaCare IVF - presentation-ready IVF clinic management system running entirely on synthetic mock data.",
+  "description": "RHV IVF - presentation-ready IVF clinic management system running entirely on synthetic mock data.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -34,6 +34,7 @@
     "qrcode": "1.5.4",
     "radix-ui": "1.7.0",
     "react": "19.3.0",
+    "react-day-picker": "^10.0.2",
     "react-dom": "19.3.0",
     "react-hook-form": "7.89.0",
     "react-to-print": "3.3.0",

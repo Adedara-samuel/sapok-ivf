@@ -1,6 +1,5 @@
 import { procedureSchema, ProcedureType, type Procedure } from "@/lib/schemas/procedure";
 import { addendumSchema } from "@/lib/schemas/procedure";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { assert, createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -18,11 +17,11 @@ export interface ProcedureState {
   post: (id: string, signatureDataUrl: string) => Procedure;
   addAddendum: (id: string, body: string) => Procedure;
   discardDraft: (id: string) => void;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useProcedureStore = createDomainStore<ProcedureState>("procedures", (set, get) => ({
-  procedures: seedSlice("procedures"),
+  procedures: [],
   saveDraft: (input, id) => {
     validate(ProcedureType, input.type);
     const existing = id ? get().procedures.find((p) => p.id === id) : undefined;
@@ -79,7 +78,7 @@ export const useProcedureStore = createDomainStore<ProcedureState>("procedures",
     });
     audit("cancel", "procedure", `Discarded ${current.type} draft`, current.cycleId);
   },
-  reset: (seed = getSeed()) =>
+  reset: (seed) =>
     set((s) => {
       s.procedures = seed.procedures;
     }),

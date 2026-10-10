@@ -1,5 +1,5 @@
 import { catalogItem, DRUG_SEED, HMO_NAMES, CORPORATE_NAMES } from "@/lib/constants/catalog";
-import { DEFAULT_CONSENT_TEMPLATES, DIAGNOSES } from "@/lib/constants/clinical";
+import { COMPLEXIONS, DEFAULT_CONSENT_TEMPLATES, DIAGNOSES } from "@/lib/constants/clinical";
 import type {
   AuditAction,
   Charge,
@@ -29,16 +29,7 @@ import { GOBLETS, TANKS } from "@/lib/schemas/embryology";
 import { ageYears, daysBetween, formatTime, lagosDateTime, shiftDate, todayIso } from "@/lib/utils/dates";
 import { pad } from "@/lib/utils/ids";
 import { gradeScore } from "@/lib/utils/embryo";
-import {
-  COMPLEXIONS,
-  EYE_COLOURS,
-  FEMALE_FIRST,
-  HAIR_COLOURS,
-  LAGOS_ADDRESSES,
-  MALE_FIRST,
-  SURNAMES,
-  WARRI_ADDRESSES,
-} from "@/lib/seed/names";
+import { EYE_COLOURS, FEMALE_FIRST, HAIR_COLOURS, MALE_FIRST, PATIENT_ADDRESSES, SURNAMES } from "@/lib/seed/names";
 import { createRng } from "@/lib/seed/rng";
 import { signatureDataUrl } from "@/lib/seed/signature";
 import { SEED_STAFF } from "@/lib/seed/staff";
@@ -125,7 +116,7 @@ export function buildSeed(anchor: Date = new Date()): SeedData {
       }
     }
   };
-  const prnCounters: Record<string, number> = { "BR-01": 100, "BR-02": 100 };
+  const prnCounters: Record<string, number> = { "BR-01": 100 };
   const newPrn = (branchId: string): string => {
     prnCounters[branchId] = (prnCounters[branchId] ?? 100) + 1;
     return `PRN-${branchId.replace("-", "")}-${pad(prnCounters[branchId] ?? 0, 6)}`;
@@ -149,7 +140,7 @@ export function buildSeed(anchor: Date = new Date()): SeedData {
     nokName?: string;
     nokRelationship?: string;
   }): Person {
-    const addr = o.address ?? rng.pick(o.branchId === "BR-02" ? WARRI_ADDRESSES : LAGOS_ADDRESSES);
+    const addr = o.address ?? rng.pick(PATIENT_ADDRESSES);
     const person: Person = {
       id: sid("PT", 4),
       prn: newPrn(o.branchId),
@@ -343,7 +334,7 @@ export function buildSeed(anchor: Date = new Date()): SeedData {
       const offset = o.startOffset + sd - 1;
       const gap = o.finalDay - sd;
       const grow = (list: number[]): number[] =>
-        sd === 1 ? [] : list.map((f) => Math.round((f - gap * rng.float(1.5, 2)) * 10) / 10).filter((f) => f >= 5);
+        sd === 1 ? [] : list.map((f) => Math.round(f - gap * rng.float(1.5, 2))).filter((f) => f >= 5);
       const isLast = idx === o.scanDays.length - 1;
       const ratio = sd / o.finalDay;
       data.stimulation.push({
@@ -1696,7 +1687,7 @@ export function buildSeed(anchor: Date = new Date()): SeedData {
     }
     usedNames.add(`${ff} ${last}`);
     const fAge = rng.int(28, 45);
-    const branchId = i % 7 === 3 ? "BR-02" : "BR-01";
+    const branchId = "BR-01";
     const diag = rng.shuffle(DIAGNOSES).slice(0, rng.chance(0.3) ? 2 : 1);
     const closed = i % 5 === 4;
     const couple = makeCouple({
@@ -2768,7 +2759,7 @@ export function buildSeed(anchor: Date = new Date()): SeedData {
   req({
     kind: "confirmation",
     title: "Confirmation of appointment",
-    details: "Completed 6-month probation at Warri branch; request confirmation.",
+    details: "Completed 6-month probation at Redemption City; request confirmation.",
     requesterId: "S17",
     status: "pending",
     createdAt: at(-5, "11:20"),
@@ -2929,9 +2920,4 @@ function cachedSeed(anchor: Date): SeedData {
 
 export function getSeed(anchor: Date = new Date()): SeedData {
   return structuredClone(cachedSeed(anchor));
-}
-
-/** Deep copy of a single collection of today's seed (used for store initial state). */
-export function seedSlice<K extends keyof SeedData>(key: K, anchor: Date = new Date()): SeedData[K] {
-  return structuredClone(cachedSeed(anchor)[key]);
 }

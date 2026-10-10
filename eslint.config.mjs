@@ -5,7 +5,14 @@ const config = [
   ...nextVitals,
   ...nextTs,
   {
-    ignores: [".next/**", "node_modules/**", "playwright-report/**", "test-results/**", "next-env.d.ts"],
+    ignores: [
+      ".next/**",
+      ".next-staging/**",
+      "node_modules/**",
+      "playwright-report/**",
+      "test-results/**",
+      "next-env.d.ts",
+    ],
   },
   {
     rules: {
@@ -13,6 +20,8 @@ const config = [
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "@typescript-eslint/ban-ts-comment": "error",
       "no-console": ["error", { allow: ["error"] }],
+      // Images are user-captured data URLs (photos, signatures, QR codes); next/image adds nothing for these.
+      "@next/next/no-img-element": "off",
     },
   },
 ];

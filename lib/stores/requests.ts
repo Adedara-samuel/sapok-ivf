@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { requestSchema, RequestKind, type StaffRequest } from "@/lib/schemas/admin";
 import { isoDate, money } from "@/lib/schemas/common";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { assert, createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -59,11 +58,11 @@ export interface RequestState {
   requests: StaffRequest[];
   create: (input: CreateRequestInput) => StaffRequest;
   decide: (id: string, approve: boolean, comment?: string) => StaffRequest;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useRequestStore = createDomainStore<RequestState>("requests", (set, get) => ({
-  requests: seedSlice("requests"),
+  requests: [],
   create: (input) => {
     const parsed = validate(createRequestSchema, input);
     const request = validate(requestSchema, {
@@ -117,7 +116,7 @@ export const useRequestStore = createDomainStore<RequestState>("requests", (set,
     listeners.forEach((l) => l(decided));
     return decided;
   },
-  reset: (seed = getSeed()) =>
+  reset: (seed) =>
     set((s) => {
       s.requests = seed.requests;
     }),

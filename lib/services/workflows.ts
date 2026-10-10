@@ -1,5 +1,4 @@
-import type { StaffRole } from "@/lib/schemas/admin";
-import type { Staff } from "@/lib/schemas/admin";
+import type { Staff, StaffRequest, StaffRole } from "@/lib/schemas/admin";
 import { audit } from "@/lib/stores/audit";
 import { useBillingStore, type RefundRequestInput } from "@/lib/stores/billing";
 import { assert, DomainError } from "@/lib/stores/core";
@@ -68,7 +67,7 @@ export function cancelOrder(orderId: string, reason: string): Order {
 }
 
 /** Refunds go through the approvals engine: request first, refund applied on approval. */
-export function requestRefund(episodeId: string, input: RefundRequestInput): void {
+export function requestRefund(episodeId: string, input: RefundRequestInput): StaffRequest {
   const episode = useEpisodeStore.getState().episodes.find((e) => e.id === episodeId);
   if (!episode) throw new DomainError("Episode not found");
   const billing = useBillingStore.getState();
@@ -90,9 +89,10 @@ export function requestRefund(episodeId: string, input: RefundRequestInput): voi
     entityId: episodeId,
   });
   billing.createRefund(episodeId, input, request.id);
+  return request;
 }
 
-export function requestFileReopen(episodeId: string, reason: string): void {
+export function requestFileReopen(episodeId: string, reason: string): StaffRequest {
   const episode = useEpisodeStore.getState().episodes.find((e) => e.id === episodeId);
   if (!episode) throw new DomainError("Episode not found");
   assert(episode.status === "closed", "This file is not closed");
@@ -100,7 +100,7 @@ export function requestFileReopen(episodeId: string, reason: string): void {
     .getState()
     .requests.find((r) => r.kind === "file-reopen" && r.entityId === episodeId && r.status === "pending");
   assert(!pending, "A reopen request is already awaiting approval");
-  useRequestStore
+  return useRequestStore
     .getState()
     .create({ kind: "file-reopen", title: `Reopen file ${episode.ivfNo}`, details: reason, entityId: episodeId });
 }

@@ -114,26 +114,21 @@ export interface SeedAddress {
   state: string;
 }
 
-export const LAGOS_ADDRESSES: readonly SeedAddress[] = [
-  { street: "Admiralty Way, Lekki Phase 1", city: "Lagos", state: "Lagos" },
-  { street: "Adeola Odeku Street, Victoria Island", city: "Lagos", state: "Lagos" },
+/** Home addresses around Redemption City (Ogun State) and the nearby Lagos–Ibadan corridor. */
+export const PATIENT_ADDRESSES: readonly SeedAddress[] = [
+  { street: "Redemption Camp Road, Redemption City", city: "Mowe", state: "Ogun" },
+  { street: "Ofada Road, Mowe", city: "Mowe", state: "Ogun" },
+  { street: "Ibafo-Isheri Road, Ibafo", city: "Ibafo", state: "Ogun" },
+  { street: "Magboro Road, Magboro", city: "Magboro", state: "Ogun" },
+  { street: "Arepo Estate Road, Arepo", city: "Arepo", state: "Ogun" },
+  { street: "Kara Road, Isheri", city: "Isheri", state: "Ogun" },
+  { street: "Sagamu-Benin Expressway, Sagamu", city: "Sagamu", state: "Ogun" },
+  { street: "Oke-Ilewo Road, Abeokuta", city: "Abeokuta", state: "Ogun" },
+  { street: "Old Lagos Road, Ota", city: "Ota", state: "Ogun" },
+  { street: "Ikorodu Road, Ojota", city: "Lagos", state: "Lagos" },
   { street: "Allen Avenue, Ikeja", city: "Lagos", state: "Lagos" },
-  { street: "Herbert Macaulay Way, Yaba", city: "Lagos", state: "Lagos" },
-  { street: "Ogudu Road, Ojota", city: "Lagos", state: "Lagos" },
-  { street: "Awolowo Road, Ikoyi", city: "Lagos", state: "Lagos" },
-  { street: "Agege Motor Road, Surulere", city: "Lagos", state: "Lagos" },
-  { street: "Lekki-Epe Expressway, Ajah", city: "Lagos", state: "Lagos" },
-  { street: "Isheri Road, Magodo", city: "Lagos", state: "Lagos" },
   { street: "Ring Road", city: "Ibadan", state: "Oyo" },
-  { street: "Wuse Zone 4", city: "Abuja", state: "FCT" },
 ];
 
-export const WARRI_ADDRESSES: readonly SeedAddress[] = [
-  { street: "Okumagba Avenue", city: "Warri", state: "Delta" },
-  { street: "Effurun-Sapele Road", city: "Effurun", state: "Delta" },
-  { street: "Airport Road", city: "Warri", state: "Delta" },
-];
-
-export const COMPLEXIONS = ["Fair", "Light brown", "Medium brown", "Dark brown", "Dark"] as const;
 export const EYE_COLOURS = ["Dark brown", "Brown", "Light brown", "Hazel"] as const;
 export const HAIR_COLOURS = ["Black", "Dark brown", "Brown"] as const;

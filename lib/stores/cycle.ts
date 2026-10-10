@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { isoDate } from "@/lib/schemas/common";
 import { CycleOutcome, CycleProtocol, CycleStage, cycleSchema, type Cycle } from "@/lib/schemas/cycle";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { assert, createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -53,7 +52,7 @@ export interface CycleState {
   setPlan: (id: string, text: string) => void;
   recordOutcome: (id: string, input: z.infer<typeof outcomeSchema>) => void;
   cancel: (id: string, reason: string) => void;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useCycleStore = createDomainStore<CycleState>("cycles", (set, get) => {
@@ -76,7 +75,7 @@ export const useCycleStore = createDomainStore<CycleState>("cycles", (set, get) 
     return c;
   };
   return {
-    cycles: seedSlice("cycles"),
+    cycles: [],
     create: (episodeId, input) => {
       const parsed = validate(newCycleSchema, input);
       const existing = get().cycles.filter((c) => c.episodeId === episodeId);
@@ -161,7 +160,7 @@ export const useCycleStore = createDomainStore<CycleState>("cycles", (set, get) 
         c.cancelReason = reason.trim();
       });
     },
-    reset: (seed = getSeed()) =>
+    reset: (seed) =>
       set((s) => {
         s.cycles = seed.cycles;
       }),

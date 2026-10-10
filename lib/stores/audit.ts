@@ -4,16 +4,15 @@ import { createDomainStore, validate } from "@/lib/stores/core";
 import { currentActorId } from "@/lib/stores/session";
 import { newId } from "@/lib/utils/ids";
 import { nowIso } from "@/lib/utils/dates";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 
 export interface AuditState {
   events: AuditEvent[];
   log: (action: AuditAction, entity: string, summary: string, entityId?: string) => AuditEvent;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useAuditStore = createDomainStore<AuditState>("audit", (set) => ({
-  events: seedSlice("audit"),
+  events: [],
   log: (action, entity, summary, entityId) => {
     const event = validate(auditSchema, {
       id: newId("AUD"),
@@ -29,7 +28,7 @@ export const useAuditStore = createDomainStore<AuditState>("audit", (set) => ({
     });
     return event;
   },
-  reset: (seed = getSeed()) =>
+  reset: (seed) =>
     set((s) => {
       s.events = seed.audit;
     }),

@@ -1,0 +1,261 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Design tokens (light) — RHV IVF palette mapped onto shadcn/ui variable names */
+:root {
+  --radius: 0.75rem;
+  --background: #f7fafa;
+  --foreground: #0f1f20;
+  --card: #ffffff;
+  --card-foreground: #0f1f20;
+  --popover: #ffffff;
+  --popover-foreground: #0f1f20;
+  --primary: #0f766e;
+  --primary-hover: #115e59;
+  --primary-foreground: #ffffff;
+  --secondary: #eef4f4;
+  --secondary-foreground: #0f1f20;
+  --muted: #eef4f4;
+  --muted-foreground: #5b6b6d;
+  --accent: #e6f2f1;
+  --accent-foreground: #0f1f20;
+  --rose: #e11d74;
+  --rose-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --success: #16a34a;
+  --warning: #d97706;
+  --info: #0284c7;
+  --border: #e2e8e8;
+  --input: #d5dede;
+  --ring: #0f766e;
+  --chart-1: #0f766e;
+  --chart-2: #e11d74;
+  --chart-3: #0284c7;
+  --chart-4: #d97706;
+  --chart-5: #7c3aed;
+  --chart-6: #16a34a;
+  --chart-7: #64748b;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f1f20;
+  --sidebar-primary: #0f766e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e6f2f1;
+  --sidebar-accent-foreground: #0f1f20;
+  --sidebar-border: #e2e8e8;
+  --sidebar-ring: #0f766e;
+}
+
+.dark {
+  --background: #0b1213;
+  --foreground: #e6f0f0;
+  --card: #121b1c;
+  --card-foreground: #e6f0f0;
+  --popover: #121b1c;
+  --popover-foreground: #e6f0f0;
+  --primary: #2dd4bf;
+  --primary-hover: #5eead4;
+  --primary-foreground: #04201d;
+  --secondary: #1a2627;
+  --secondary-foreground: #e6f0f0;
+  --muted: #1a2627;
+  --muted-foreground: #8fa3a5;
+  --accent: #173033;
+  --accent-foreground: #e6f0f0;
+  --rose: #f472b6;
+  --rose-foreground: #2a0616;
+  --destructive: #f87171;
+  --destructive-foreground: #2a0606;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --info: #38bdf8;
+  --border: #223032;
+  --input: #2b3c3e;
+  --ring: #2dd4bf;
+  --chart-1: #2dd4bf;
+  --chart-2: #f472b6;
+  --chart-3: #38bdf8;
+  --chart-4: #fbbf24;
+  --chart-5: #a78bfa;
+  --chart-6: #4ade80;
+  --chart-7: #94a3b8;
+  --sidebar: #0f1819;
+  --sidebar-foreground: #e6f0f0;
+  --sidebar-primary: #2dd4bf;
+  --sidebar-primary-foreground: #04201d;
+  --sidebar-accent: #173033;
+  --sidebar-accent-foreground: #e6f0f0;
+  --sidebar-border: #223032;
+  --sidebar-ring: #2dd4bf;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-rose: var(--rose);
+  --color-rose-foreground: var(--rose-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    font-size: 14px;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+  .tabular-nums,
+  td,
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Everything interactive shows a pointer; disabled controls show not-allowed. */
+  a[href],
+  button,
+  summary,
+  label[for],
+  [role="button"],
+  [role="tab"],
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemcheckbox"],
+  [role="menuitemradio"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="switch"],
+  [role="combobox"],
+  [data-slot="select-trigger"],
+  [data-slot="command-item"],
+  [data-slot="calendar"] button,
+  tr[tabindex] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"],
+  [data-disabled] {
+    cursor: not-allowed;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------ print */
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm 16mm;
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 9px;
+      color: #5b6b6d;
+    }
+    @bottom-left {
+      content: "DEMO DATA — synthetic records only";
+      font-size: 9px;
+      color: #dc2626;
+    }
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #0f1f20 !important;
+    font-size: 11px;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-sheet {
+    position: relative;
+  }
+  .print-sheet::before {
+    content: "DEMO DATA";
+    position: fixed;
+    top: 42%;
+    left: 8%;
+    font-size: 96px;
+    font-weight: 800;
+    color: rgba(220, 38, 38, 0.06);
+    transform: rotate(-24deg);
+    z-index: 0;
+    pointer-events: none;
+  }
+  .print-sheet table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .print-sheet th,
+  .print-sheet td {
+    border: 1px solid #e2e8e8;
+    padding: 4px 6px;
+    text-align: left;
+  }
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+}

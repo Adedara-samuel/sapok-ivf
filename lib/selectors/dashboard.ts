@@ -47,6 +47,10 @@ function rangeQuery(range: DateRange): string {
   return s ? `&${s}` : "";
 }
 
+function withBranch(href: string, branchId: string): string {
+  return `${href}${href.includes("?") ? "&" : "?"}branch=${encodeURIComponent(branchId || "all")}`;
+}
+
 export function scopedEpisodes(db: Pick<ClinicDb, "episodes">, branchId: string) {
   return db.episodes.filter((e) => inBranch(e, branchId));
 }
@@ -61,21 +65,21 @@ export function computeTiles(db: ClinicDb, f: DashboardFilters, today: string): 
       key: "frontDesk",
       label: "Front-desk postings today",
       value: db.waiting.filter((w) => inBranch(w, f.branchId) && isTodayPosting(w, today)).length,
-      href: "/waiting-list",
+      href: withBranch("/waiting-list", f.branchId),
       hint: "Visits added to today's waiting list",
     },
     {
       key: "existingPatients",
       label: "Existing patients",
       value: db.persons.filter((p) => isPatient(p) && inBranch(p, f.branchId)).length,
-      href: "/patients",
+      href: withBranch("/patients", f.branchId),
       hint: "Registered female patients",
     },
     {
       key: "activeCycles",
       label: "Active cycles",
       value: db.cycles.filter((c) => episodeIds.has(c.episodeId) && isActiveTreatmentCycle(c, byId)).length,
-      href: "/patients?view=active-cycles",
+      href: withBranch("/patients?view=active-cycles", f.branchId),
       hint: "Cycles not yet completed or cancelled",
     },
     { key: "donors", label: "Donors", value: db.donors.length, href: "/donors", hint: "Oocyte and sperm donors" },
@@ -90,14 +94,14 @@ export function computeTiles(db: ClinicDb, f: DashboardFilters, today: string): 
       key: "closedFiles",
       label: "Closed files",
       value: episodes.filter((e) => isClosedEpisode(e, range)).length,
-      href: `/patients?status=closed${rangeQuery(range)}`,
+      href: withBranch(`/patients?status=closed${rangeQuery(range)}`, f.branchId),
       hint: "Episodes closed with an outcome",
     },
     {
       key: "cancelledDrugs",
       label: "Cancelled drugs",
       value: db.orders.filter((o) => episodeIds.has(o.episodeId) && isCancelledDrug(o, range)).length,
-      href: `/pharmacy?tab=cancelled${rangeQuery(range)}`,
+      href: withBranch(`/pharmacy?tab=cancelled${rangeQuery(range)}`, f.branchId),
       hint: "Pharmacy orders cancelled with a reason",
     },
     {
@@ -153,8 +157,8 @@ export function monthlyRates(db: ClinicDb, f: DashboardFilters, today: string) {
     return {
       month: monthLabel(m),
       transfers: transfers.length,
-      pregnancyRate: percent(pregnant, transfers.length),
-      liveBirthRate: percent(live, transfers.length),
+      pregnancyRate: transfers.length ? percent(pregnant, transfers.length) : null,
+      liveBirthRate: transfers.length ? percent(live, transfers.length) : null,
     };
   });
 }

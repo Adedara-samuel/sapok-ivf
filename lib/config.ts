@@ -1,6 +1,6 @@
 export const APP_CONFIG = {
-  name: process.env.NEXT_PUBLIC_APP_NAME ?? "OvaCare IVF",
-  tagline: "Fertility & IVF clinic management",
+  name: process.env.NEXT_PUBLIC_APP_NAME ?? "RHV IVF",
+  tagline: "Redeemer's Health Village · IVF & fertility care",
   currencyCode: "NGN",
   currencySymbol: "₦",
   timezone: "Africa/Lagos",
@@ -8,7 +8,7 @@ export const APP_CONFIG = {
   demoPassword: "Demo@1234",
   twoFactorCode: "123456",
   witnessPin: "4321",
-  storagePrefix: "ovacare",
+  storagePrefix: "rhv-ivf",
   annualLeaveDays: 21,
   waitingTargetMinutes: 30,
 } as const;
@@ -16,11 +16,10 @@ export const APP_CONFIG = {
 export const BRANCHES = [
   {
     id: "BR-01",
-    name: "Lagos Island Fertility Centre",
-    short: "Lagos Island",
-    address: "14 Broad Street, Lagos Island, Lagos",
+    name: "RHV IVF Centre, Redemption City",
+    short: "Redemption City",
+    address: "Redemption City, KM 46 Lagos–Ibadan Expressway, Mowe, Ogun State",
   },
-  { id: "BR-02", name: "Warri Branch", short: "Warri", address: "22 Airport Road, Effurun, Warri, Delta" },
 ] as const;
 
 export type BranchId = (typeof BRANCHES)[number]["id"];

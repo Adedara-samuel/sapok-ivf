@@ -9,7 +9,6 @@ import {
   type Order,
   type StockMovement,
 } from "@/lib/schemas/orders";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { assert, createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -67,7 +66,7 @@ export interface OrderState {
   dispense: (id: string) => Order;
   receiveStock: (input: ReceiveStockInput) => DrugBatch;
   adjustStock: (input: AdjustStockInput) => void;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useOrderStore = createDomainStore<OrderState>("orders", (set, get) => {
@@ -81,9 +80,9 @@ export const useOrderStore = createDomainStore<OrderState>("orders", (set, get) 
       s.orders[s.orders.findIndex((o) => o.id === order.id)] = order;
     });
   return {
-    orders: seedSlice("orders"),
-    batches: seedSlice("batches"),
-    movements: seedSlice("movements"),
+    orders: [],
+    batches: [],
+    movements: [],
     place: (episodeId, input) => {
       const parsed = validate(placeOrderSchema, input);
       const item = catalogItem(parsed.catalogCode);
@@ -253,7 +252,7 @@ export const useOrderStore = createDomainStore<OrderState>("orders", (set, get) 
         batch.id,
       );
     },
-    reset: (seed = getSeed()) =>
+    reset: (seed) =>
       set((s) => {
         s.orders = seed.orders;
         s.batches = seed.batches;

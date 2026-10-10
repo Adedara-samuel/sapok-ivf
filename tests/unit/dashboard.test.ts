@@ -55,7 +55,6 @@ describe("dashboard tiles reconcile with their lists", () => {
   const scenarios = [
     { branchId: "all" },
     { branchId: "BR-01" },
-    { branchId: "BR-02" },
     { branchId: "all", from: "2026-01-01", to: "2026-10-08" },
     { branchId: "BR-01", from: "2026-09-01", to: "2026-10-08" },
   ];

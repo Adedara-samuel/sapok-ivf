@@ -1,9 +1,9 @@
-import { getSeed } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit, useAuditStore } from "@/lib/stores/audit";
 import { useBillingStore } from "@/lib/stores/billing";
 import { useClinicalStore } from "@/lib/stores/clinical";
 import { useConsentStore } from "@/lib/stores/consent";
+import { useCredentialStore } from "@/lib/stores/credentials";
 import { useCounsellingStore } from "@/lib/stores/counselling";
 import { useCycleStore } from "@/lib/stores/cycle";
 import { useEmbryologyStore } from "@/lib/stores/embryology";
@@ -22,11 +22,11 @@ import { useWaitingStore } from "@/lib/stores/waiting";
 import { todayIso } from "@/lib/utils/dates";
 
 interface Hydratable {
-  persist: { rehydrate: () => Promise<void> | void; hasHydrated: () => boolean };
+  persist: { rehydrate: () => Promise<void> | void; hasHydrated: () => boolean; getOptions: () => { name?: string } };
 }
 
 interface DataStore extends Hydratable {
-  getState: () => { reset: (seed?: SeedData) => void };
+  getState: () => { reset: (seed: SeedData) => void };
 }
 
 /** Stores whose content comes from the seed (reset restores them). */
@@ -49,22 +49,34 @@ export const DATA_STORES: DataStore[] = [
   useWaitingStore,
 ];
 
-const ALL_STORES: Hydratable[] = [...DATA_STORES, useSettingsStore, useSessionStore, useUiStore];
+const ALL_STORES: Hydratable[] = [...DATA_STORES, useSettingsStore, useSessionStore, useUiStore, useCredentialStore];
 
 // Cross-domain reactions to approvals (one approvals engine, many consumers).
 onRequestDecided((request) => useBillingStore.getState().applyRefundDecision(request));
 
+/** Loads persisted data; stores with nothing saved yet are filled from the seed (computed only when needed). */
 export async function hydrateAllStores(): Promise<void> {
   await Promise.all(ALL_STORES.map((s) => s.persist.rehydrate()));
+  const missing = DATA_STORES.filter((s) => {
+    const key = s.persist.getOptions().name;
+    return !key || localStorage.getItem(key) === null;
+  });
+  if (missing.length > 0) {
+    const { getSeed } = await import("@/lib/seed/build");
+    const seed = getSeed();
+    missing.forEach((s) => s.getState().reset(seed));
+  }
   const session = useSessionStore.getState();
   if (!session.seedDay) session.setSeedDay(todayIso());
 }
 
 /** Restore every data store to the exact seed and write one audit event. */
-export function rootReset(): void {
+export async function rootReset(): Promise<void> {
+  const { getSeed } = await import("@/lib/seed/build");
   const seed = getSeed();
   DATA_STORES.forEach((store) => store.getState().reset(seed));
   useSettingsStore.getState().reset();
+  useCredentialStore.getState().reset();
   useSessionStore.getState().setSeedDay(seed.anchor);
   audit("reset", "system", "Demo data reset to seed");
 }

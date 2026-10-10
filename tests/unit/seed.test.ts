@@ -88,7 +88,8 @@ describe("seed dataset", () => {
     expect(seed.episodes).toHaveLength(39); // couple 12 has no episode yet (first visit)
     expect(seed.persons[0]?.prn).toBe("PRN-BR01-000101");
     expect(seed.episodes[0]?.ivfNo).toBe("IVF-2026-0001");
-    expect(seed.persons.some((p) => p.branchId === "BR-02")).toBe(true);
+    expect(seed.persons.every((p) => p.branchId === "BR-01")).toBe(true);
+    expect(seed.persons.some((p) => p.state === "Delta")).toBe(false);
   });
 
   it("hand-authors couple 1 exactly", () => {

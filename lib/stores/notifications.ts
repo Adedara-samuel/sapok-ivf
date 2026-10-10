@@ -1,5 +1,4 @@
 import { notificationSchema, type AppNotification } from "@/lib/schemas/admin";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { createDomainStore, validate } from "@/lib/stores/core";
 import { nowIso } from "@/lib/utils/dates";
@@ -10,11 +9,11 @@ export interface NotificationState {
   push: (input: { userId: string; title: string; body: string; href?: string }) => AppNotification;
   markRead: (id: string) => void;
   markAllRead: (userId: string) => void;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useNotificationStore = createDomainStore<NotificationState>("notifications", (set) => ({
-  notifications: seedSlice("notifications"),
+  notifications: [],
   push: (input) => {
     const n = validate(notificationSchema, { ...input, id: newId("NTF"), at: nowIso(), read: false });
     set((s) => {
@@ -33,7 +32,7 @@ export const useNotificationStore = createDomainStore<NotificationState>("notifi
         if (n.userId === userId) n.read = true;
       });
     }),
-  reset: (seed = getSeed()) =>
+  reset: (seed) =>
     set((s) => {
       s.notifications = seed.notifications;
     }),

@@ -1,5 +1,4 @@
 import { consentSchema, type Consent, type ConsentTemplate } from "@/lib/schemas/admin";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { assert, createDomainStore, validate } from "@/lib/stores/core";
@@ -18,11 +17,11 @@ export interface SignConsentInput {
 export interface ConsentState {
   consents: Consent[];
   sign: (episodeId: string, input: SignConsentInput) => Consent;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useConsentStore = createDomainStore<ConsentState>("consents", (set) => ({
-  consents: seedSlice("consents"),
+  consents: [],
   sign: (episodeId, input) => {
     assert(input.signatureDataUrl.startsWith("data:image"), "Please sign in the box before saving", "signatureDataUrl");
     const consent = validate(consentSchema, {
@@ -42,7 +41,7 @@ export const useConsentStore = createDomainStore<ConsentState>("consents", (set)
     audit("sign", "consent", `Signed ${consent.template} consent (${consent.version})`, episodeId);
     return consent;
   },
-  reset: (seed = getSeed()) =>
+  reset: (seed) =>
     set((s) => {
       s.consents = seed.consents;
     }),

@@ -6,7 +6,6 @@ import {
   type Donor,
   type Surrogate,
 } from "@/lib/schemas/programme";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { assert, createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -22,7 +21,7 @@ export interface ProgrammeState {
   updateSurrogateScreening: (id: string, screening: Surrogate["screening"]) => void;
   matchSurrogate: (id: string, episodeId: string, ivfNo: string) => void;
   setSurrogateStatus: (id: string, status: Surrogate["status"]) => void;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useProgrammeStore = createDomainStore<ProgrammeState>("programme", (set, get) => {
@@ -47,8 +46,8 @@ export const useProgrammeStore = createDomainStore<ProgrammeState>("programme", 
       s.surrogates[s.surrogates.findIndex((x) => x.id === next.id)] = parsed;
     });
   return {
-    donors: seedSlice("donors"),
-    surrogates: seedSlice("surrogates"),
+    donors: [],
+    surrogates: [],
     updateDonorScreening: (id, screening) => {
       const d = donor(id);
       const next = { ...d, screening };
@@ -109,7 +108,7 @@ export const useProgrammeStore = createDomainStore<ProgrammeState>("programme", 
       writeSurrogate({ ...s, status }, `Status → ${status}`);
       audit("update", "surrogate", `${s.code} status → ${status}`, id);
     },
-    reset: (seed = getSeed()) =>
+    reset: (seed) =>
       set((s) => {
         s.donors = seed.donors;
         s.surrogates = seed.surrogates;

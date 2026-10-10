@@ -1,5 +1,4 @@
 import { waitingEntrySchema, type WaitingEntry, type WaitingStatus } from "@/lib/schemas/admin";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { assert, createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -30,11 +29,11 @@ export interface WaitingState {
   entries: WaitingEntry[];
   add: (input: AddToWaitingInput) => WaitingEntry;
   setStatus: (id: string, status: WaitingStatus) => WaitingEntry;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useWaitingStore = createDomainStore<WaitingState>("waiting", (set, get) => ({
-  entries: seedSlice("waiting"),
+  entries: [],
   add: (input) => {
     const today = todayIso();
     const active = get().entries.find(
@@ -75,7 +74,7 @@ export const useWaitingStore = createDomainStore<WaitingState>("waiting", (set, 
     audit("update", "waiting-list", `Waiting status → ${status}`, current.personId);
     return next;
   },
-  reset: (seed = getSeed()) =>
+  reset: (seed) =>
     set((s) => {
       s.entries = seed.waiting;
     }),

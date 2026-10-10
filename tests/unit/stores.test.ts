@@ -28,8 +28,8 @@ function episodeOf(firstName: string) {
   return e;
 }
 
-beforeEach(() => {
-  rootReset();
+beforeEach(async () => {
+  await rootReset();
   loginAs("S18", "admin");
 });
 
@@ -79,17 +79,15 @@ describe("store business rules", () => {
     const ep = episodeOf("Adaobi");
     const cycle = useProcedureStore.getState().procedures.find(() => true);
     if (!cycle) throw new Error("no procedure");
-    const draft = useProcedureStore
-      .getState()
-      .saveDraft({
-        cycleId: cycle.cycleId,
-        type: "PRP",
-        date: "2026-10-08",
-        time: "10:00",
-        surgeonId: "S02",
-        count: 1,
-        postOpNote: "PRP instilled.",
-      });
+    const draft = useProcedureStore.getState().saveDraft({
+      cycleId: cycle.cycleId,
+      type: "PRP",
+      date: "2026-10-08",
+      time: "10:00",
+      surgeonId: "S02",
+      count: 1,
+      postOpNote: "PRP instilled.",
+    });
     expect(() => useProcedureStore.getState().post(draft.id, "")).toThrow(/Sign/);
     const posted = postProcedure(draft.id, SIG);
     expect(posted.status).toBe("posted");
@@ -191,15 +189,13 @@ describe("store business rules", () => {
 
   it("approvals: no self-approval, rejection needs a reason, decisions notify the requester", () => {
     loginAs("S07", "nurse");
-    const req = useRequestStore
-      .getState()
-      .create({
-        kind: "leave",
-        title: "Annual leave",
-        details: "Family visit",
-        startDate: "2026-11-02",
-        endDate: "2026-11-06",
-      });
+    const req = useRequestStore.getState().create({
+      kind: "leave",
+      title: "Annual leave",
+      details: "Family visit",
+      startDate: "2026-11-02",
+      endDate: "2026-11-06",
+    });
     expect(() => useRequestStore.getState().decide(req.id, true)).toThrow(/own request/);
     loginAs("S15", "manager");
     expect(() => useRequestStore.getState().decide(req.id, false)).toThrow(/reason/);
@@ -231,11 +227,11 @@ describe("store business rules", () => {
     expect(s().balance).toBe(before + 5_000);
   });
 
-  it("reset restores the exact seed", () => {
+  it("reset restores the exact seed", async () => {
     const n = useOrderStore.getState().orders.length;
     placeOrder(episodeOf("Adaobi").id, { catalogCode: "LAB-FSH", qty: 1 });
     expect(useOrderStore.getState().orders.length).toBe(n + 1);
-    rootReset();
+    await rootReset();
     expect(useOrderStore.getState().orders.length).toBe(n);
   });
 });

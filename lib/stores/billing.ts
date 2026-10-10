@@ -13,7 +13,6 @@ import {
   type Refund,
 } from "@/lib/schemas/billing";
 import type { PayerCategory } from "@/lib/schemas/common";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { assert, createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -99,14 +98,14 @@ export interface BillingState {
   applyRefundDecision: (request: StaffRequest) => void;
   submitClaim: (episodeId: string, hmo: string, amount: number) => HmoClaim;
   decideClaim: (id: string, status: "approved" | "rejected") => void;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useBillingStore = createDomainStore<BillingState>("billing", (set, get) => ({
-  charges: seedSlice("charges"),
-  payments: seedSlice("payments"),
-  refunds: seedSlice("refunds"),
-  claims: seedSlice("claims"),
+  charges: [],
+  payments: [],
+  refunds: [],
+  claims: [],
   addCharge: (input) => {
     const charge = validate(chargeSchema, { ...input, id: newId("CHG"), paid: 0, status: "unpaid", at: nowIso() });
     set((s) => {
@@ -247,7 +246,7 @@ export const useBillingStore = createDomainStore<BillingState>("billing", (set, 
     });
     audit(status === "approved" ? "approve" : "reject", "claim", `HMO claim ${status} (${claim.hmo})`, claim.episodeId);
   },
-  reset: (seed = getSeed()) =>
+  reset: (seed) =>
     set((s) => {
       s.charges = seed.charges;
       s.payments = seed.payments;

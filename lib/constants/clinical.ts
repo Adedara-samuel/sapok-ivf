@@ -312,3 +312,5 @@ export const NOTE_TEMPLATES: { label: string; body: string }[] = [
     body: "ET done, __ blastocyst(s) transferred. Continue progesterone support. Beta-hCG on __/__.",
   },
 ];
+
+export const COMPLEXIONS = ["Fair", "Light brown", "Medium brown", "Dark brown", "Dark"] as const;

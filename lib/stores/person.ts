@@ -1,5 +1,4 @@
 import { personSchema, fullName, type Person } from "@/lib/schemas/person";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -43,11 +42,11 @@ export interface PersonState {
   persons: Person[];
   register: (input: PersonInput, options?: { allowDuplicate?: boolean }) => Person;
   update: (id: string, patch: Partial<PersonInput>) => Person;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const usePersonStore = createDomainStore<PersonState>("persons", (set, get) => ({
-  persons: seedSlice("persons"),
+  persons: [],
   register: (input, options = {}) => {
     const duplicate = findDuplicatePerson(get().persons, input);
     if (duplicate && !options.allowDuplicate) throw new DuplicatePersonError(duplicate);
@@ -79,7 +78,7 @@ export const usePersonStore = createDomainStore<PersonState>("persons", (set, ge
     audit("update", "patient", `Updated details of ${fullName(next)} (${next.prn})`, id);
     return next;
   },
-  reset: (seed = getSeed()) =>
+  reset: (seed) =>
     set((s) => {
       s.persons = seed.persons;
     }),

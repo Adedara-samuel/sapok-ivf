@@ -13,7 +13,6 @@ import {
   type EmbryoStatus,
   type StoragePosition,
 } from "@/lib/schemas/embryology";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { assert, createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -75,7 +74,7 @@ export interface EmbryologyState {
   addCultureLog: (cycleId: string, input: { day: number; note: string; incubator: string }) => CultureLog;
   renewConsent: (positionId: string, months: number) => void;
   recordTransfer: (embryoIds: string[], procedureLabel: string) => void;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useEmbryologyStore = createDomainStore<EmbryologyState>("embryology", (set, get) => {
@@ -106,10 +105,10 @@ export const useEmbryologyStore = createDomainStore<EmbryologyState>("embryology
     assert(!taken, `Position ${positionCode(slot)} is already occupied`, "straw");
   };
   return {
-    embryos: seedSlice("embryos"),
-    storage: seedSlice("storage"),
-    cultureLogs: seedSlice("cultureLogs"),
-    custody: seedSlice("custody"),
+    embryos: [],
+    storage: [],
+    cultureLogs: [],
+    custody: [],
     addEmbryos: (cycleId, count, source) => {
       assert(Number.isInteger(count) && count > 0 && count <= 30, "Enter between 1 and 30 oocytes/zygotes", "count");
       const existing = get().embryos.filter((e) => e.cycleId === cycleId).length;
@@ -272,7 +271,7 @@ export const useEmbryologyStore = createDomainStore<EmbryologyState>("embryology
         eligible[0]?.cycleId,
       );
     },
-    reset: (seed = getSeed()) =>
+    reset: (seed) =>
       set((s) => {
         s.embryos = seed.embryos;
         s.storage = seed.storage;

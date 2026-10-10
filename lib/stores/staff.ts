@@ -1,5 +1,4 @@
 import { staffSchema, type Staff } from "@/lib/schemas/admin";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -12,11 +11,11 @@ export interface StaffState {
   add: (input: StaffInput) => Staff;
   update: (id: string, patch: Partial<StaffInput>) => Staff;
   setActive: (id: string, active: boolean) => void;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useStaffStore = createDomainStore<StaffState>("staff", (set, get) => ({
-  staff: seedSlice("staff"),
+  staff: [],
   add: (input) => {
     if (get().staff.some((s) => s.email.toLowerCase() === input.email.toLowerCase()))
       throw new DomainError("A user with this email already exists", {
@@ -57,7 +56,7 @@ export const useStaffStore = createDomainStore<StaffState>("staff", (set, get) =
     });
     audit("update", "user", `${active ? "Reactivated" : "Deactivated"} user ${current.name}`, id);
   },
-  reset: (seed = getSeed()) =>
+  reset: (seed) =>
     set((s) => {
       s.staff = seed.staff;
     }),

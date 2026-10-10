@@ -11,7 +11,6 @@ import {
   type StimulationEntry,
   type Vitals,
 } from "@/lib/schemas/clinical";
-import { getSeed, seedSlice } from "@/lib/seed/build";
 import type { SeedData } from "@/lib/seed/types";
 import { audit } from "@/lib/stores/audit";
 import { assert, createDomainStore, DomainError, validate } from "@/lib/stores/core";
@@ -45,15 +44,15 @@ export interface ClinicalState {
   saveHistory: (personId: string, input: HistoryInput) => MedicalHistory;
   addDocument: (episodeId: string, input: DocumentInput) => PatientDocument;
   removeDocument: (id: string) => void;
-  reset: (seed?: SeedData) => void;
+  reset: (seed: SeedData) => void;
 }
 
 export const useClinicalStore = createDomainStore<ClinicalState>("clinical", (set, get) => ({
-  notes: seedSlice("notes"),
-  stimulation: seedSlice("stimulation"),
-  vitals: seedSlice("vitals"),
-  histories: seedSlice("histories"),
-  documents: seedSlice("documents"),
+  notes: [],
+  stimulation: [],
+  vitals: [],
+  histories: [],
+  documents: [],
   addNote: (episodeId, kind, body) => {
     const note = validate(noteSchema, {
       id: newId("NT"),
@@ -156,7 +155,7 @@ export const useClinicalStore = createDomainStore<ClinicalState>("clinical", (se
     });
     audit("cancel", "document", `Removed document ${doc.name}`, doc.episodeId);
   },
-  reset: (seed = getSeed()) =>
+  reset: (seed) =>
     set((s) => {
       s.notes = seed.notes;
       s.stimulation = seed.stimulation;
