@@ -68,6 +68,16 @@ Stores use `skipHydration`. `StoreGate` (in `AppProviders`) rehydrates all store
 - `PrintDialog` (react-to-print) previews and prints A4 sheets built with `PrintSheet`: clinic letterhead, patient identifiers, page numbers and a "DEMO DATA" watermark via `@page` and print CSS in `app/globals.css`. Sheets: patient summary, cycle summary, procedure report, consent, receipt, statement, straw label (QR code), and every report.
 - `DataTable` exports the filtered rows as CSV or PDF (jsPDF + autotable).
 
+## Hospitals, accounts and AI
+
+- `lib/tenancy.ts` holds the active hospital and per-hospital storage keys. `lib/stores/platform.ts` (shared, never scoped) holds hospitals, invoices, support tickets, the gateway fee model, the platform audit log and the super-admin session.
+- `hydrateAllStores()` loads the platform store first, then the active hospital's stores. It seeds them (sample or empty) and applies the hospital's name, branches and subscription state (`applyTenant`). `TenantTheme` re-themes the primary colour; `BrandLogo` shows the hospital's logo.
+- `lib/stores/wallet.ts` holds accounts, the append-only ledger, settlements (fee split) and holder messages. `placeOrder` → `autoDebitEpisode`; `cancelOrder` → `returnEpisodeCredit`; gateway webhooks → `receiveGatewayPayment` (idempotent). Pure helpers are in `lib/wallet/ledger.ts` and `lib/wallet/fees.ts`.
+- `lib/ai/assistant.ts` is the intent engine over the read model; `components/ai/assistant-panel.tsx` is the slide-over panel.
+- Routes: `/accounts`, `/accounts/[id]`, `/subscription`, `/h/[slug]`, `/platform/*`.
+
+See [PLATFORM-AND-ACCOUNTS.md](PLATFORM-AND-ACCOUNTS.md) for the behaviour.
+
 ## Testing
 
 - `tests/unit/seed.test.ts` — every seed record passes its schema; determinism; spec counts.
@@ -75,3 +85,8 @@ Stores use `skipHydration`. `StoreGate` (in `AppProviders`) rehydrates all store
 - `tests/unit/dashboard.test.ts` — every dashboard tile equals an independent count of the list it links to, across branch scopes and date ranges; charts and alerts come from data.
 - `tests/unit/permissions.test.ts` — allowed and denied routes for every role.
 - `tests/e2e/demo-script.spec.ts` — the demo script across six roles, asserting no console errors.
+- `tests/unit/wallet.test.ts` — account seed invariants, fees, auto-debit, part-payment and credit, duplicate webhooks, returns, refunds through approval, read-only mode.
+- `tests/unit/assistant.test.ts` — AI intents, role limits, refusals, numbers matching the records.
+- `tests/unit/platform.test.ts` — automatic subscription status, onboarding validation, payments, tickets, tenancy keys.
+- `tests/e2e/accounts-platform.spec.ts` — transfer + duplicate, auto-debit on billing, AI, super-admin onboarding into an empty hospital, subscription payment and support ticket.
+- `tests/walkthrough/walkthrough.spec.ts` — the narrated video walkthrough (`pnpm demo:video`).

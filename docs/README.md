@@ -39,6 +39,10 @@ Every demo account uses the password **`Demo@1234`**. The login page shows a qui
 
 The topbar **role switcher** lets you view the app as any role without signing out.
 
+**Hospitals.** The demo has three hospitals, each with its own link and branding: `/h/overcare` (default), `/h/lagoon` (subscription 3 days late) and `/h/bloom` (empty). The same demo users exist in Overcare and Lagoon.
+
+**Platform owner (super admin).** Sign in on the same login page with the super-admin email and password (not shown in the quick-pick list) to reach the platform console at `/platform`. See [PLATFORM-AND-ACCOUNTS.md](PLATFORM-AND-ACCOUNTS.md).
+
 ## Scripts
 
 | Command                     | What it does                                                                                                                    |
@@ -49,6 +53,7 @@ The topbar **role switcher** lets you view the app as any role without signing o
 | `pnpm lint`                 | ESLint (Next core-web-vitals + TypeScript rules)                                                                                |
 | `pnpm test`                 | Vitest unit tests (schemas, seed, stores, business rules, dashboard reconciliation, permissions)                                |
 | `pnpm test:e2e`             | Playwright: the demo script end-to-end against a production build (`pnpm build` first; `E2E_PORT` picks the port, default 3100) |
+| `pnpm demo:video`           | Records the narrated product walkthrough video to `demo-video/overcare-walkthrough.webm` (`pnpm build` first)                   |
 | `pnpm format`               | Prettier                                                                                                                        |
 
 ## Demo data
@@ -59,7 +64,8 @@ The topbar **role switcher** lets you view the app as any role without signing o
 
 ## Where to go next
 
-- [DEMO-SCRIPT.md](DEMO-SCRIPT.md) — the 12-minute walkthrough
+- [DEMO-SCRIPT.md](DEMO-SCRIPT.md) — the walkthrough (sections 10–13: accounts, AI, subscription, super admin)
+- [PLATFORM-AND-ACCOUNTS.md](PLATFORM-AND-ACCOUNTS.md) — hospitals, family accounts, payments and fees, subscriptions, AI, going live
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how the app is put together
 - [DECISIONS.md](DECISIONS.md) — choices and deviations from the brief
 - [DATA-DICTIONARY.md](DATA-DICTIONARY.md) — every entity and field
