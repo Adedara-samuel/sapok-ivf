@@ -34,6 +34,7 @@ import { createRng } from "@/lib/seed/rng";
 import { signatureDataUrl } from "@/lib/seed/signature";
 import { SEED_STAFF } from "@/lib/seed/staff";
 import type { SeedData } from "@/lib/seed/types";
+import { addWalletSeed } from "@/lib/seed/wallets";
 
 export const SEED_NUMBER = 20261008;
 
@@ -103,6 +104,10 @@ export function buildSeed(anchor: Date = new Date()): SeedData {
     notifications: [],
     waiting: [],
     documents: [],
+    wallets: [],
+    ledger: [],
+    settlements: [],
+    walletMessages: [],
   };
 
   // ---------------------------------------------------------------- people
@@ -2906,7 +2911,60 @@ export function buildSeed(anchor: Date = new Date()): SeedData {
   auditEvent(-1, "16:20", "S04", "sign", "embryo", `Witnessed vitrification for ${c2.episode.ivfNo}`);
   data.audit.sort((a, b) => a.at.localeCompare(b.at));
 
+  // ================================================================ patient & family accounts
+  addWalletSeed(data, at);
+
   return data;
+}
+
+/** A hospital that starts with no records: just its first admin user and empty registers. */
+export function emptySeed(admin: { name: string; email: string; phone: string }, anchor: Date = new Date()): SeedData {
+  return {
+    anchor: todayIso(anchor),
+    staff: [
+      {
+        id: "S01",
+        name: admin.name,
+        role: "admin",
+        email: admin.email,
+        phone: admin.phone,
+        branchId: "BR-01",
+        active: true,
+      },
+    ],
+    persons: [],
+    episodes: [],
+    cycles: [],
+    notes: [],
+    stimulation: [],
+    vitals: [],
+    histories: [],
+    procedures: [],
+    embryos: [],
+    storage: [],
+    cultureLogs: [],
+    custody: [],
+    orders: [],
+    batches: [],
+    movements: [],
+    charges: [],
+    payments: [],
+    refunds: [],
+    claims: [],
+    donors: [],
+    surrogates: [],
+    counselling: [],
+    consents: [],
+    requests: [],
+    audit: [],
+    notifications: [],
+    waiting: [],
+    documents: [],
+    wallets: [],
+    ledger: [],
+    settlements: [],
+    walletMessages: [],
+  };
 }
 
 let cached: { day: string; data: SeedData } | null = null;

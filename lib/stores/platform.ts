@@ -2,19 +2,28 @@ import { z } from "zod";
 import {
   brandingSchema,
   gatewayFeesSchema,
+  newTicketSchema,
   Plan,
+  PLANS,
   settlementAccountSchema,
+  subscriptionInvoiceSchema,
+  supportTicketSchema,
   tenantSchema,
+  ticketMessageSchema,
   type Branding,
   type GatewayFees,
+  type NewTicketInput,
   type PlatformAuditEvent,
+  type SubscriptionInvoice,
+  type SupportTicket,
   type Tenant,
+  type TicketStatus,
 } from "@/lib/schemas/platform";
 import { phone } from "@/lib/schemas/common";
 import { assert, createDomainStore, DomainError, validate } from "@/lib/stores/core";
 import { clearTenantData, DEFAULT_TENANT, slugify } from "@/lib/tenancy";
 import { nowIso, shiftDate, todayIso } from "@/lib/utils/dates";
-import { newId } from "@/lib/utils/ids";
+import { newId, nextSequence, pad } from "@/lib/utils/ids";
 import { DEFAULT_GATEWAY_FEES } from "@/lib/wallet/fees";
 
 /**
@@ -137,9 +146,104 @@ function seedTenants(): Tenant[] {
   ];
 }
 
+function seedInvoices(tenants: Tenant[]): SubscriptionInvoice[] {
+  const invoices: SubscriptionInvoice[] = [];
+  let n = 0;
+  tenants.forEach((t) => {
+    // three monthly payments ending at the paid-until date
+    for (let k = 3; k >= 1; k -= 1) {
+      n += 1;
+      const periodTo = shiftDate(t.paidUntil, -(k - 1) * 30);
+      const periodFrom = shiftDate(periodTo, -30);
+      invoices.push({
+        id: `INV-S${n}`,
+        number: `OVC-INV-${pad(n, 5)}`,
+        tenantSlug: t.slug,
+        plan: t.plan,
+        months: 1,
+        amount: PLANS[t.plan].monthly,
+        method: k === 2 ? "bank-transfer" : "card",
+        reference: `PSK_SUB_${pad(70000 + n * 37, 6)}`,
+        periodFrom,
+        periodTo,
+        paidBy: t.admin.name,
+        paidAt: `${shiftDate(periodFrom, -1)}T10:15:00.000Z`,
+      });
+    }
+  });
+  return invoices;
+}
+
+function seedTickets(): SupportTicket[] {
+  const today = todayIso();
+  const at = (days: number, time: string) => `${shiftDate(today, days)}T${time}:00.000Z`;
+  return [
+    {
+      id: "TKT-S1",
+      number: "TKT-00001",
+      tenantSlug: DEFAULT_TENANT,
+      subject: "Receipt printer cuts off the last line",
+      category: "technical",
+      priority: "normal",
+      status: "resolved",
+      raisedBy: "Sade Johnson",
+      raisedByEmail: "sade.johnson@rhv.demo",
+      messages: [
+        {
+          id: "TM-1",
+          author: "Sade Johnson",
+          fromPlatform: false,
+          body: "On the front-desk printer the balance line of receipts is cut off. Chrome on Windows.",
+          at: at(-9, "09:12"),
+        },
+        {
+          id: "TM-2",
+          author: "Overcare Support",
+          fromPlatform: true,
+          body: "Thanks — please set the printer's paper size to A4 in the print dialog (it was on Letter). Closing once you confirm.",
+          at: at(-9, "11:40"),
+        },
+        {
+          id: "TM-3",
+          author: "Sade Johnson",
+          fromPlatform: false,
+          body: "Confirmed, that fixed it. Thank you!",
+          at: at(-8, "08:05"),
+        },
+      ],
+      createdAt: at(-9, "09:12"),
+      updatedAt: at(-8, "08:05"),
+    },
+    {
+      id: "TKT-S2",
+      number: "TKT-00002",
+      tenantSlug: "lagoon",
+      subject: "Subscription renewal — can we pay by transfer?",
+      category: "billing",
+      priority: "high",
+      status: "open",
+      raisedBy: "Demo Admin",
+      raisedByEmail: "admin@rhv.demo",
+      messages: [
+        {
+          id: "TM-4",
+          author: "Demo Admin",
+          fromPlatform: false,
+          body: "Our card was declined for this month's renewal. Can we pay the subscription by bank transfer instead?",
+          at: at(-2, "14:30"),
+        },
+      ],
+      createdAt: at(-2, "14:30"),
+      updatedAt: at(-2, "14:30"),
+    },
+  ];
+}
+
 export interface PlatformState {
   tenants: Tenant[];
   gatewayFees: GatewayFees;
+  invoices: SubscriptionInvoice[];
+  tickets: SupportTicket[];
   audit: PlatformAuditEvent[];
   superAdmin: boolean;
   signInSuperAdmin: () => void;
@@ -148,7 +252,14 @@ export interface PlatformState {
   updateBranding: (slug: string, input: Branding, actor: string) => Tenant;
   updateSettings: (slug: string, input: TenantSettingsInput) => Tenant;
   updateSettlement: (slug: string, input: Tenant["settlement"]) => Tenant;
-  recordSubscriptionPayment: (slug: string, months: number) => Tenant;
+  /** Hospital pays its subscription (simulated Paystack checkout) or the super admin records an offline payment. */
+  paySubscription: (
+    slug: string,
+    input: { months: number; method: SubscriptionInvoice["method"]; paidBy: string },
+  ) => SubscriptionInvoice;
+  raiseTicket: (slug: string, input: NewTicketInput, by: { name: string; email: string }) => SupportTicket;
+  replyTicket: (id: string, body: string, by: { name: string; fromPlatform: boolean }) => SupportTicket;
+  setTicketStatus: (id: string, status: TicketStatus, actor: string) => SupportTicket;
   setSuspended: (slug: string, suspended: boolean, reason?: string) => Tenant;
   setPaidUntil: (slug: string, date: string) => Tenant;
   updateGatewayFees: (input: GatewayFees) => void;
@@ -156,12 +267,17 @@ export interface PlatformState {
   reset: () => void;
 }
 
-const defaults = () => ({
-  tenants: seedTenants(),
-  gatewayFees: { ...DEFAULT_GATEWAY_FEES },
-  audit: [] as PlatformAuditEvent[],
-  superAdmin: false,
-});
+const defaults = () => {
+  const tenants = seedTenants();
+  return {
+    tenants,
+    gatewayFees: { ...DEFAULT_GATEWAY_FEES },
+    invoices: seedInvoices(tenants),
+    tickets: seedTickets(),
+    audit: [] as PlatformAuditEvent[],
+    superAdmin: false,
+  };
+};
 
 export const usePlatformStore = createDomainStore<PlatformState>(
   "platform",
@@ -204,7 +320,8 @@ export const usePlatformStore = createDomainStore<PlatformState>(
           slug,
           id: newId("TEN"),
           subaccountCode: `ACCT_${Math.random().toString(36).slice(2, 12)}`,
-          paidUntil: shiftDate(todayIso(), billingMonths * 30),
+          // first period starts today; the onboarding payment is recorded as the first invoice
+          paidUntil: todayIso(),
           suspended: false,
           createdAt: nowIso(),
         });
@@ -215,7 +332,12 @@ export const usePlatformStore = createDomainStore<PlatformState>(
           `Onboarded ${tenant.name} (${tenant.plan}, ${tenant.feePercent}% fee) — admin ${tenant.admin.email}`,
           tenant.slug,
         );
-        return tenant;
+        get().paySubscription(tenant.slug, {
+          months: billingMonths,
+          method: "recorded-by-platform",
+          paidBy: "Super admin",
+        });
+        return get().tenants.find((t) => t.slug === tenant.slug) as Tenant;
       },
       updateBranding: (slug, input, actor) => {
         const v = validate(brandingSchema, input);
@@ -242,15 +364,107 @@ export const usePlatformStore = createDomainStore<PlatformState>(
         log(`Changed settlement account of ${next.name} to ${v.bankName} ••••${v.accountNumber.slice(-4)}`, slug);
         return next;
       },
-      recordSubscriptionPayment: (slug, months) => {
-        assert(Number.isInteger(months) && months >= 1 && months <= 24, "Choose 1–24 months");
+      paySubscription: (slug, { months, method, paidBy }) => {
+        assert(Number.isInteger(months) && months >= 1 && months <= 24, "Choose 1–24 months", "months");
         const current = find(slug);
         const today = todayIso();
-        const from = current.paidUntil > today ? current.paidUntil : today;
-        const next = validate(tenantSchema, { ...current, paidUntil: shiftDate(from, months * 30) });
+        const periodFrom = current.paidUntil > today ? current.paidUntil : today;
+        const periodTo = shiftDate(periodFrom, months * 30);
+        const discount = months >= 12 ? 2 / 12 : 0; // annual prepay: 2 months free
+        const amount = Math.round(PLANS[current.plan].monthly * months * (1 - discount));
+        const invoice = validate(subscriptionInvoiceSchema, {
+          id: newId("INV"),
+          number: nextSequence(
+            get().invoices.map((i) => i.number),
+            "OVC-INV-",
+            5,
+          ),
+          tenantSlug: slug,
+          plan: current.plan,
+          months,
+          amount,
+          method,
+          reference: `PSK_SUB_${Date.now().toString(36).toUpperCase()}`,
+          periodFrom,
+          periodTo,
+          paidBy,
+          paidAt: nowIso(),
+        });
+        const next = validate(tenantSchema, { ...current, paidUntil: periodTo });
         replace(next);
-        log(`Subscription payment for ${months} month(s) — ${next.name} paid until ${next.paidUntil}`, slug);
-        return next;
+        set((s) => {
+          s.invoices.push(invoice);
+        });
+        log(
+          `Subscription paid: ${invoice.number}, ${months} month(s), ₦${amount.toLocaleString()} — ${next.name} paid until ${periodTo}`,
+          slug,
+          method === "recorded-by-platform" ? "Super admin" : paidBy,
+        );
+        return invoice;
+      },
+      raiseTicket: (slug, input, by) => {
+        find(slug);
+        const v = validate(newTicketSchema, input);
+        const at = nowIso();
+        const ticket = validate(supportTicketSchema, {
+          id: newId("TKT"),
+          number: nextSequence(
+            get().tickets.map((t) => t.number),
+            "TKT-",
+            5,
+          ),
+          tenantSlug: slug,
+          subject: v.subject,
+          category: v.category,
+          priority: v.priority,
+          status: "open",
+          raisedBy: by.name,
+          raisedByEmail: by.email,
+          messages: [{ id: newId("TM"), author: by.name, fromPlatform: false, body: v.body, at }],
+          createdAt: at,
+          updatedAt: at,
+        });
+        set((s) => {
+          s.tickets.push(ticket);
+        });
+        log(`Ticket ${ticket.number} raised: ${ticket.subject}`, slug, by.name);
+        return ticket;
+      },
+      replyTicket: (id, body, by) => {
+        const ticket = get().tickets.find((t) => t.id === id);
+        if (!ticket) throw new DomainError("Ticket not found");
+        assert(ticket.status !== "closed", "This ticket is closed. Raise a new ticket instead.");
+        const message = validate(ticketMessageSchema, {
+          id: newId("TM"),
+          author: by.name,
+          fromPlatform: by.fromPlatform,
+          body,
+          at: nowIso(),
+        });
+        set((s) => {
+          const t = s.tickets.find((x) => x.id === id);
+          if (!t) return;
+          t.messages.push(message);
+          t.updatedAt = message.at;
+          // a hospital reply reopens a resolved ticket; a platform reply moves it to in-progress
+          if (by.fromPlatform && t.status === "open") t.status = "in-progress";
+          if (!by.fromPlatform && t.status === "resolved") t.status = "open";
+        });
+        log(`Reply on ${ticket.number}`, ticket.tenantSlug, by.name);
+        return get().tickets.find((t) => t.id === id) as SupportTicket;
+      },
+      setTicketStatus: (id, status, actor) => {
+        const ticket = get().tickets.find((t) => t.id === id);
+        if (!ticket) throw new DomainError("Ticket not found");
+        set((s) => {
+          const t = s.tickets.find((x) => x.id === id);
+          if (t) {
+            t.status = status;
+            t.updatedAt = nowIso();
+          }
+        });
+        log(`${ticket.number} marked ${status}`, ticket.tenantSlug, actor);
+        return get().tickets.find((t) => t.id === id) as SupportTicket;
       },
       setSuspended: (slug, suspended, reason) => {
         if (suspended) assert(reason && reason.trim().length >= 5, "Give a reason (at least 5 characters)", "reason");

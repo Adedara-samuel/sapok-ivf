@@ -28,6 +28,10 @@ import type {
   Surrogate,
   Vitals,
   WaitingEntry,
+  LedgerEntry,
+  Settlement,
+  Wallet,
+  WalletMessage,
 } from "@/lib/schemas";
 
 export interface SeedData {
@@ -61,4 +65,8 @@ export interface SeedData {
   notifications: AppNotification[];
   waiting: WaitingEntry[];
   documents: PatientDocument[];
+  wallets: Wallet[];
+  ledger: LedgerEntry[];
+  settlements: Settlement[];
+  walletMessages: WalletMessage[];
 }

@@ -93,6 +93,62 @@ export const gatewayFeesSchema = z.object({
 });
 export type GatewayFees = z.infer<typeof gatewayFeesSchema>;
 
+export const subscriptionInvoiceSchema = z.object({
+  id: z.string(),
+  number: z.string(),
+  tenantSlug: z.string(),
+  plan: Plan,
+  months: z.number().int().positive(),
+  amount: z.number().positive(),
+  method: z.enum(["card", "bank-transfer", "recorded-by-platform"]),
+  reference: z.string(),
+  periodFrom: isoDate,
+  periodTo: isoDate,
+  paidBy: z.string(),
+  paidAt: isoDateTime,
+});
+export type SubscriptionInvoice = z.infer<typeof subscriptionInvoiceSchema>;
+
+export const TicketCategory = z.enum(["billing", "technical", "payments", "training", "feature-request", "other"]);
+export type TicketCategory = z.infer<typeof TicketCategory>;
+export const TicketPriority = z.enum(["low", "normal", "high", "urgent"]);
+export type TicketPriority = z.infer<typeof TicketPriority>;
+export const TicketStatus = z.enum(["open", "in-progress", "resolved", "closed"]);
+export type TicketStatus = z.infer<typeof TicketStatus>;
+
+export const ticketMessageSchema = z.object({
+  id: z.string(),
+  author: z.string(),
+  fromPlatform: z.boolean(),
+  body: z.string().trim().min(2, "Write a message"),
+  at: isoDateTime,
+});
+export type TicketMessage = z.infer<typeof ticketMessageSchema>;
+
+export const supportTicketSchema = z.object({
+  id: z.string(),
+  number: z.string(),
+  tenantSlug: z.string(),
+  subject: z.string().trim().min(5, "Subject needs at least 5 characters").max(100),
+  category: TicketCategory,
+  priority: TicketPriority,
+  status: TicketStatus,
+  raisedBy: z.string(),
+  raisedByEmail: z.string(),
+  messages: z.array(ticketMessageSchema).min(1),
+  createdAt: isoDateTime,
+  updatedAt: isoDateTime,
+});
+export type SupportTicket = z.infer<typeof supportTicketSchema>;
+
+export const newTicketSchema = z.object({
+  subject: supportTicketSchema.shape.subject,
+  category: TicketCategory,
+  priority: TicketPriority,
+  body: z.string().trim().min(10, "Describe the issue (at least 10 characters)"),
+});
+export type NewTicketInput = z.infer<typeof newTicketSchema>;
+
 export const platformAuditSchema = z.object({
   id: z.string(),
   at: isoDateTime,
