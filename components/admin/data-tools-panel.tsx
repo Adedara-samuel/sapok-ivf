@@ -24,7 +24,7 @@ export function DataToolsPanel() {
       importAllData(json);
       toast.success(`Imported ${file.name}`);
     } catch (e) {
-      toast.error(isDomainError(e) ? `Import rejected: ${e.message}` : "That file is not a valid RHV IVF export.");
+      toast.error(isDomainError(e) ? `Import rejected: ${e.message}` : "That file is not a valid Overcare IVF export.");
     } finally {
       if (fileRef.current) fileRef.current.value = "";
     }
@@ -43,7 +43,7 @@ export function DataToolsPanel() {
           onClick={() => {
             downloadBlob(
               JSON.stringify(exportAllData(), null, 2),
-              `rhv-ivf-export-${todayIso()}.json`,
+              `overcare-ivf-export-${todayIso()}.json`,
               "application/json",
             );
             audit("export", "system", "Exported all data (JSON)");

@@ -1,4 +1,5 @@
 import type { SeedData } from "@/lib/seed/types";
+import { APP_CONFIG } from "@/lib/config";
 import { audit, useAuditStore } from "@/lib/stores/audit";
 import { useBillingStore } from "@/lib/stores/billing";
 import { useClinicalStore } from "@/lib/stores/clinical";
@@ -57,6 +58,19 @@ onRequestDecided((request) => useBillingStore.getState().applyRefundDecision(req
 /** Loads persisted data; stores with nothing saved yet are filled from the seed (computed only when needed). */
 export async function hydrateAllStores(): Promise<void> {
   await Promise.all(ALL_STORES.map((s) => s.persist.rehydrate()));
+  const settings = useSettingsStore.getState();
+  const clinicName = settings.clinic.clinicName === "RHV IVF" ? APP_CONFIG.name : settings.clinic.clinicName;
+  const branches = settings.branches.map((branch) =>
+    branch.name === "RHV IVF Centre, Redemption City"
+      ? { ...branch, name: "Overcare IVF Centre, Redemption City" }
+      : branch,
+  );
+  if (
+    clinicName !== settings.clinic.clinicName ||
+    branches.some((branch, index) => branch.name !== settings.branches[index]?.name)
+  ) {
+    useSettingsStore.setState({ clinic: { ...settings.clinic, clinicName }, branches });
+  }
   const missing = DATA_STORES.filter((s) => {
     const key = s.persist.getOptions().name;
     return !key || localStorage.getItem(key) === null;

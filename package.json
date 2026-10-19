@@ -1,8 +1,8 @@
 {
-  "name": "rhv-ivf",
+  "name": "overcare-ivf",
   "version": "1.0.0",
   "private": true,
-  "description": "RHV IVF - presentation-ready IVF clinic management system running entirely on synthetic mock data.",
+  "description": "Overcare IVF - presentation-ready IVF clinic management system running entirely on synthetic mock data.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

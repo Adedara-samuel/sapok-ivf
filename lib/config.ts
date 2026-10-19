@@ -1,6 +1,6 @@
 export const APP_CONFIG = {
-  name: process.env.NEXT_PUBLIC_APP_NAME ?? "RHV IVF",
-  tagline: "Redeemer's Health Village · IVF & fertility care",
+  name: process.env.NEXT_PUBLIC_APP_NAME ?? "Overcare IVF",
+  tagline: "IVF & fertility care",
   currencyCode: "NGN",
   currencySymbol: "₦",
   timezone: "Africa/Lagos",
@@ -16,7 +16,7 @@ export const APP_CONFIG = {
 export const BRANCHES = [
   {
     id: "BR-01",
-    name: "RHV IVF Centre, Redemption City",
+    name: "Overcare IVF Centre, Redemption City",
     short: "Redemption City",
     address: "Redemption City, KM 46 Lagos–Ibadan Expressway, Mowe, Ogun State",
   },

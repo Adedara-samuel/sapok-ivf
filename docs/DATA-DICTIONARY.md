@@ -2,7 +2,7 @@
 
 Every entity is defined by a Zod schema in `lib/schemas/` (the single source of truth). Types come from `z.infer`. Dates are ISO `YYYY-MM-DD`, date-times are ISO 8601 UTC, money is in naira (₦), and IDs are prefixed strings.
 
-Persisted stores (`localStorage` key `rhv-ivf:<name>`): `persons`, `staff`, `episodes`, `cycles`, `clinical`, `procedures`, `embryology`, `orders`, `billing`, `programme`, `counselling`, `consents`, `requests`, `notifications`, `waiting`, `audit`, `settings`, `session`, `ui`.
+Persisted stores (`localStorage` key `rhv-ivf:<name>`; the prefix is retained for compatibility with existing browser data): `persons`, `staff`, `episodes`, `cycles`, `clinical`, `procedures`, `embryology`, `orders`, `billing`, `programme`, `counselling`, `consents`, `requests`, `notifications`, `waiting`, `audit`, `settings`, `session`, `ui`.
 
 ## People
 

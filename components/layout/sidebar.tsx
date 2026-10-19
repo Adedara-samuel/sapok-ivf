@@ -92,11 +92,11 @@ export function SidebarNav({ collapsed = false, onNavigate }: { collapsed?: bool
   return (
     <div className="flex h-full flex-col">
       <div className={cn("flex h-14 items-center gap-2 px-4", collapsed && "justify-center px-0")}>
-        <BrandLogo className={collapsed ? "h-8" : "h-9"} />
+        <BrandLogo compact className={collapsed ? "h-8" : "h-9"} />
         {!collapsed ? (
           <span className="min-w-0 leading-tight">
             <span className="block truncate font-semibold">{clinicName}</span>
-            <span className="text-muted-foreground block truncate text-[11px]">Redeemer&apos;s Health Village</span>
+            <span className="text-muted-foreground block truncate text-[11px]">IVF &amp; fertility care</span>
           </span>
         ) : null}
       </div>

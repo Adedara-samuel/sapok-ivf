@@ -33,8 +33,8 @@ Choices made while building, including where the build deliberately differs from
 ## Accounts
 
 17. **Profile and passwords.** `/profile` is open to every signed-in user and shows their details read-only, so staff can't edit their own name, role, email or branch; that stays with Admin → Users. Password changes go through `lib/services/auth.ts`: Zod strength rules, a matching confirmation, and the new password must differ from the current one. The current password is not asked for, because the user is already signed in (client decision). The store keeps only a SHA-256 hash salted with the user ID (`rhv-ivf:credentials`), and that store is excluded from data export. Every change, failed attempt and admin reset is audited.
-18. **Single site at Redemption City.** The clinic is RHV IVF Centre, Redemption City, KM 46 Lagos–Ibadan Expressway, Mowe, Ogun State (`lib/config.ts`). The brief's second "Warri" branch was removed at the client's request. Branch support stays in the data model (`branchId` on people, episodes and visits), and the branch switcher and filters reappear automatically once more than one branch is configured. Patient home addresses are spread around Redemption City and the Lagos–Ibadan corridor.
-19. **Rename.** The product is named **RHV IVF** (Redeemer's Health Village) via `APP_CONFIG.name`, using the supplied RHV logos in `public/brand/`. Browser storage keys use the `rhv-ivf:` prefix.
+18. **Single site at Redemption City.** The clinic is Overcare IVF Centre, Redemption City, KM 46 Lagos–Ibadan Expressway, Mowe, Ogun State (`lib/config.ts`). The brief's second "Warri" branch was removed at the client's request. Branch support stays in the data model (`branchId` on people, episodes and visits), and the branch switcher and filters reappear automatically once more than one branch is configured. Patient home addresses are spread around Redemption City and the Lagos–Ibadan corridor.
+19. **Branding.** The product is named **Overcare IVF** via `APP_CONFIG.name` and uses an inline Overcare wordmark. The existing `rhv-ivf:` browser storage prefix is retained to preserve data already saved in users' browsers.
 
 ## Performance
 
