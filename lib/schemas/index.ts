@@ -10,3 +10,4 @@ export * from "@/lib/schemas/billing";
 export * from "@/lib/schemas/programme";
 export * from "@/lib/schemas/counselling";
 export * from "@/lib/schemas/admin";
+export * from "@/lib/schemas/wallet";

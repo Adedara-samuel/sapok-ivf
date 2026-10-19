@@ -1,8 +1,9 @@
 import type { z } from "zod";
 import { create, type StateCreator } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { APP_CONFIG } from "@/lib/config";
+import { scopedKey } from "@/lib/tenancy";
 
 /** Error thrown by store actions; `fieldErrors` maps form paths to messages. */
 export class DomainError extends Error {
@@ -39,16 +40,61 @@ export function assert(condition: unknown, message: string, field?: string): ass
   if (!condition) throw new DomainError(message, field ? { [field]: message } : {});
 }
 
+// ------------------------------------------------------------------ read-only mode (lapsed subscription)
+
+let writeBlock: string | null = null;
+
+/** Set by the tenant gate when the hospital's subscription only allows reading. */
+export function setWriteBlock(message: string | null): void {
+  writeBlock = message;
+}
+
+export function writeBlockMessage(): string | null {
+  return writeBlock;
+}
+
+/** Throws when the hospital is in read-only mode. Called before every user-initiated write. */
+export function assertWritable(): void {
+  if (writeBlock) throw new DomainError(writeBlock);
+}
+
+// ------------------------------------------------------------------ persistence
+
+/** localStorage scoped to the active hospital (see lib/tenancy.ts). */
+const tenantStorage: StateStorage = {
+  getItem: (name) => localStorage.getItem(scopedKey(name)),
+  setItem: (name, value) => localStorage.setItem(scopedKey(name), value),
+  removeItem: (name) => localStorage.removeItem(scopedKey(name)),
+};
+
 type DomainInit<S> = StateCreator<S, [["zustand/persist", unknown], ["zustand/immer", never]]>;
 
+export interface DomainStoreOptions {
+  version?: number;
+  /** Upgrade state saved by an older version of the app. */
+  migrate?: (persisted: unknown, version: number) => unknown;
+  /** Platform-wide stores are shared by every hospital and never scoped. */
+  shared?: boolean;
+}
+
 /** Zustand store with immer + localStorage persistence. Hydration is manual (see AppProviders). */
-export function createDomainStore<S extends object>(name: string, init: DomainInit<S>, version = 1) {
+export function createDomainStore<S extends object>(
+  name: string,
+  init: DomainInit<S>,
+  options: DomainStoreOptions = {},
+) {
   return create<S>()(
     persist(immer(init), {
       name: `${APP_CONFIG.storagePrefix}:${name}`,
-      version,
+      version: options.version ?? 1,
+      migrate: options.migrate as ((persisted: unknown, version: number) => S) | undefined,
       skipHydration: true,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => (options.shared ? localStorage : tenantStorage)),
     }),
   );
+}
+
+/** True when a store has something saved for the active hospital. */
+export function hasPersisted(persistName: string): boolean {
+  return localStorage.getItem(scopedKey(persistName)) !== null;
 }

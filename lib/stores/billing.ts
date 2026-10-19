@@ -79,6 +79,27 @@ function unallocated(
   return Math.max(0, paid - refunded - allocated);
 }
 
+/** Credit on an episode that is not allocated to any charge (e.g. after a paid charge is waived). */
+export function unallocatedCredit(
+  episodeId: string,
+  charges: readonly Charge[],
+  payments: readonly Payment[],
+  refunds: readonly Refund[],
+): number {
+  return unallocated(charges, payments, refunds, episodeId);
+}
+
+/** How much of an episode's payments came from a patient account and has not been returned to it. */
+export function walletFundedNet(episodeId: string, payments: readonly Payment[], refunds: readonly Refund[]): number {
+  const paid = payments
+    .filter((p) => p.episodeId === episodeId && p.method === "wallet")
+    .reduce((s, p) => s + p.amount, 0);
+  const returned = refunds
+    .filter((r) => r.episodeId === episodeId && r.destination === "wallet" && r.status === "approved")
+    .reduce((s, r) => s + r.amount, 0);
+  return paid - returned;
+}
+
 export interface BillingState {
   charges: Charge[];
   payments: Payment[];
@@ -95,6 +116,8 @@ export interface BillingState {
   waiveForOrder: (orderId: string) => void;
   recordPayment: (episodeId: string, input: RecordPaymentInput, receiptPrefix?: string) => Payment;
   createRefund: (episodeId: string, input: RefundRequestInput, requestId: string) => Refund;
+  /** Return unallocated wallet-funded credit to the patient account (no approval: money stays in the hospital). */
+  returnToWallet: (episodeId: string, amount: number, reason: string) => Refund;
   applyRefundDecision: (request: StaffRequest) => void;
   submitClaim: (episodeId: string, hmo: string, amount: number) => HmoClaim;
   decideClaim: (id: string, status: "approved" | "rejected") => void;

@@ -18,8 +18,11 @@ export const chargeSchema = z.object({
 });
 export type Charge = z.infer<typeof chargeSchema>;
 
-export const PaymentMethod = z.enum(["cash", "transfer", "pos", "hmo", "deposit"]);
+export const PaymentMethod = z.enum(["cash", "transfer", "pos", "hmo", "deposit", "wallet"]);
 export type PaymentMethod = z.infer<typeof PaymentMethod>;
+
+/** Methods a cashier can record by hand (wallet payments are made automatically from a patient account). */
+export const DESK_PAYMENT_METHODS = PaymentMethod.options.filter((m) => m !== "wallet");
 
 export const paymentSchema = z.object({
   id,
@@ -39,7 +42,10 @@ export const refundSchema = z.object({
   amount: z.number().positive("Enter an amount greater than zero"),
   reason: z.string().min(5, "Explain the refund (at least 5 characters)"),
   status: z.enum(["pending", "approved", "rejected"]),
-  requestId: id,
+  /** Approval request; absent for automatic returns to a patient account (e.g. a cancelled order). */
+  requestId: id.optional(),
+  /** Where the money goes: back to the patient in cash/transfer, or back into their account (wallet). */
+  destination: z.enum(["cash", "wallet"]).optional(),
   requestedBy: id,
   at: isoDateTime,
 });

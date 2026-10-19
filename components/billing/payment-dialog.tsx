@@ -15,7 +15,7 @@ import { Form } from "@/components/ui/form";
 import { humanize } from "@/components/shared/status-chip";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useZodForm } from "@/hooks/use-zod-form";
-import { PaymentMethod, type Payment } from "@/lib/schemas/billing";
+import { DESK_PAYMENT_METHODS, PaymentMethod, type Payment } from "@/lib/schemas/billing";
 import { requestRefund } from "@/lib/services/workflows";
 import { useBillingStore } from "@/lib/stores/billing";
 import { useSettingsStore } from "@/lib/stores/settings";
@@ -88,7 +88,7 @@ export function PaymentDialog({
                 control={form.control}
                 name="method"
                 label="Method"
-                options={toOptions(PaymentMethod.options, (m) =>
+                options={toOptions(DESK_PAYMENT_METHODS, (m) =>
                   m === "pos" ? "POS" : m === "hmo" ? "HMO" : humanize(m),
                 )}
                 required
