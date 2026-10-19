@@ -35,6 +35,8 @@ import { useSessionStore } from "@/lib/stores/session";
 import { useSettingsStore } from "@/lib/stores/settings";
 import { useStaffStore } from "@/lib/stores/staff";
 import { useWaitingStore } from "@/lib/stores/waiting";
+import { useWalletStore } from "@/lib/stores/wallet";
+import { usePermission } from "@/hooks/use-permission";
 import { ageParts, formatDate, todayIso } from "@/lib/utils/dates";
 import { cn } from "@/lib/utils/cn";
 
@@ -91,8 +93,22 @@ const regSchema = z
     doctorId: z.string().min(1, "Choose the treating doctor"),
     diagnosis: z.array(z.string()).min(1, "Choose at least one diagnosis"),
     notes: z.string().optional(),
+    account: z.object({
+      mode: z.enum(["new", "existing", "later"]),
+      existingId: z.string().optional(),
+      bvn: z.string().optional(),
+      autoDebit: z.boolean(),
+    }),
   })
   .superRefine((v, ctx) => {
+    if (v.account.mode === "existing" && !v.account.existingId)
+      ctx.addIssue({ code: "custom", path: ["account", "existingId"], message: "Choose the family account to join" });
+    if (v.account.mode === "new" && v.account.bvn && !/^\d{11}$/.test(v.account.bvn))
+      ctx.addIssue({
+        code: "custom",
+        path: ["account", "bvn"],
+        message: "BVN has 11 digits (or leave it empty for now)",
+      });
     if (v.hasPartner) {
       if (!v.partner.firstName || v.partner.firstName.trim().length < 2)
         ctx.addIssue({ code: "custom", path: ["partner", "firstName"], message: "Enter the partner's first name" });
@@ -138,7 +154,7 @@ const STEPS = [
     label: "Contacts & next of kin",
     fields: ["patient.phone", "patient.email", "address", "city", "state", "nextOfKin"],
   },
-  { key: "payer", label: "Payer & episode", fields: ["payer", "episodeType", "doctorId", "diagnosis"] },
+  { key: "payer", label: "Payer & episode", fields: ["payer", "episodeType", "doctorId", "diagnosis", "account"] },
   { key: "review", label: "Review", fields: [] },
 ] as const;
 
@@ -163,6 +179,11 @@ export function RegistrationWizard() {
   const staff = useStaffStore((s) => s.staff);
   const branchId = useSessionStore((s) => s.branchId);
   const ivfPrefix = useSettingsStore((s) => s.clinic.ivfPrefix);
+  const canWallets = usePermission("wallets.manage");
+  const wallets = useWalletStore((s) => s.wallets);
+  const openWallet = useWalletStore((s) => s.openWallet);
+  const addWalletMember = useWalletStore((s) => s.addMember);
+  const familyAccounts = wallets.filter((w) => w.kind === "family" && w.status === "active");
   const [step, setStep] = useState(0);
   const [duplicates, setDuplicates] = useState<Person[]>([]);
 
@@ -188,6 +209,7 @@ export function RegistrationWizard() {
     doctorId: "",
     diagnosis: [],
     notes: "",
+    account: { mode: "new", existingId: undefined, bvn: "", autoDebit: true },
   });
   useUnsavedGuard(form.formState.isDirty);
   const values = form.watch();
@@ -269,6 +291,25 @@ export function RegistrationWizard() {
           },
           ivfPrefix,
         );
+        if (canWallets && v.account.mode === "new") {
+          const hasPartner = Boolean(partnerId);
+          openWallet(
+            {
+              kind: hasPartner ? "family" : "individual",
+              name: hasPartner ? `${patient.lastName} Family` : fullName(patient),
+              holderId: patient.id,
+              members: partnerId ? [{ personId: partnerId, relationship: "Husband" }] : [],
+              bvn: v.account.bvn ?? "",
+              generateAccount: Boolean(v.account.bvn),
+              autoDebit: v.account.autoDebit,
+              lowBalanceAlert: 50_000,
+            },
+            branchId,
+          );
+        } else if (canWallets && v.account.mode === "existing" && v.account.existingId) {
+          addWalletMember(v.account.existingId, patient.id, "Relative");
+          if (partnerId) addWalletMember(v.account.existingId, partnerId, "Relative");
+        }
         if (params.get("from") === "waiting")
           addWaiting({
             personId: patient.id,
@@ -550,6 +591,56 @@ export function RegistrationWizard() {
                     rows={2}
                     className="md:col-span-3"
                   />
+                  {canWallets ? (
+                    <fieldset className="grid gap-3 rounded-lg border p-4 md:col-span-3">
+                      <legend className="px-1 text-sm font-semibold">Billing account</legend>
+                      <p className="text-muted-foreground -mt-1 text-xs">
+                        The couple pays into their own account number; bills are deducted automatically.
+                      </p>
+                      <SelectField
+                        control={form.control}
+                        name="account.mode"
+                        label="Account"
+                        options={[
+                          {
+                            value: "new",
+                            label: values.hasPartner
+                              ? "Open a family account for the couple"
+                              : "Open an individual account",
+                          },
+                          ...(familyAccounts.length
+                            ? [{ value: "existing", label: "Join an existing family account" }]
+                            : []),
+                          { value: "later", label: "Decide later" },
+                        ]}
+                      />
+                      {values.account.mode === "new" ? (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <TextField
+                            control={form.control}
+                            name="account.bvn"
+                            label="Patient's BVN (to issue the account number)"
+                            placeholder="11 digits — or leave empty and add later"
+                          />
+                          <CheckboxField
+                            control={form.control}
+                            name="account.autoDebit"
+                            label="Auto-debit bills from the account"
+                            className="self-end"
+                          />
+                        </div>
+                      ) : null}
+                      {values.account.mode === "existing" ? (
+                        <SelectField
+                          control={form.control}
+                          name="account.existingId"
+                          label="Family account"
+                          required
+                          options={familyAccounts.map((w) => ({ value: w.id, label: `${w.name} (${w.code})` }))}
+                        />
+                      ) : null}
+                    </fieldset>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -595,6 +686,16 @@ export function RegistrationWizard() {
                     <dd>
                       Payer: {humanize(values.payer.category)} {values.payer.sponsor ?? values.payer.company ?? ""}
                     </dd>
+                    {canWallets ? (
+                      <dd>
+                        Account:{" "}
+                        {values.account.mode === "new"
+                          ? `new ${values.hasPartner ? "family" : "individual"} account${values.account.bvn ? " with account number" : " (account number later)"}`
+                          : values.account.mode === "existing"
+                            ? `joins ${familyAccounts.find((w) => w.id === values.account.existingId)?.name ?? "—"}`
+                            : "decide later"}
+                      </dd>
+                    ) : null}
                   </dl>
                 </div>
               ) : null}

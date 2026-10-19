@@ -48,7 +48,9 @@ export async function downloadPdfTable<T>(
   const pageWidth = doc.internal.pageSize.getWidth();
   doc.setFontSize(14);
   doc.setTextColor(15, 118, 110);
-  doc.text(APP_CONFIG.name, 40, 40);
+  // the hospital's name (each hospital exports under its own letterhead)
+  const { useSettingsStore } = await import("@/lib/stores/settings");
+  doc.text(useSettingsStore.getState().clinic.clinicName || APP_CONFIG.name, 40, 40);
   doc.setFontSize(11);
   doc.setTextColor(15, 31, 32);
   doc.text(title, 40, 60);

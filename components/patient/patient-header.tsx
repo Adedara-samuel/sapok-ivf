@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertTriangle, Droplet, Phone, UserRound } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, Droplet, HeartHandshake, Phone, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusChip, humanize } from "@/components/shared/status-chip";
@@ -10,8 +11,11 @@ import { useLookups } from "@/hooks/use-lookups";
 import { usePermission } from "@/hooks/use-permission";
 import { EPISODE_TYPE_LABELS } from "@/lib/constants/clinical";
 import { accountSummary, useBillingStore } from "@/lib/stores/billing";
+import { useWalletStore } from "@/lib/stores/wallet";
+import { cn } from "@/lib/utils/cn";
 import { formatAge } from "@/lib/utils/dates";
 import { formatMoney } from "@/lib/utils/money";
+import { walletBalance, walletForEpisode, walletOfPerson } from "@/lib/wallet/ledger";
 
 function Item({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -34,6 +38,11 @@ export function PatientHeader({ ctx, onEpisodeChange }: { ctx: PatientCtx; onEpi
     [episode, charges, payments, refunds],
   );
   const sponsor = p.payer.sponsor ?? p.payer.company;
+  const canWallets = usePermission("wallets.view");
+  const wallets = useWalletStore((s) => s.wallets);
+  const entries = useWalletStore((s) => s.entries);
+  const wallet = episode ? walletForEpisode(wallets, episode) : walletOfPerson(wallets, p.id);
+  const walletAvailable = wallet ? walletBalance(entries, wallet.id) + wallet.creditLimit : 0;
 
   return (
     <section
@@ -54,6 +63,12 @@ export function PatientHeader({ ctx, onEpisodeChange }: { ctx: PatientCtx; onEpi
               {p.title} {p.firstName} {p.otherNames ? `${p.otherNames} ` : ""}
               {p.lastName}
             </h1>
+            {partner ? (
+              <Badge variant="outline" className="gap-1">
+                <HeartHandshake className="text-rose size-3" aria-hidden="true" /> Couple with {partner.firstName}{" "}
+                {partner.lastName}
+              </Badge>
+            ) : null}
             {episode ? (
               <StatusChip status={episode.status} label={`Episode ${humanize(episode.status)}`} />
             ) : (
@@ -101,7 +116,7 @@ export function PatientHeader({ ctx, onEpisodeChange }: { ctx: PatientCtx; onEpi
           </Select>
         ) : null}
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-6">
+      <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
         <Item label="Mobile">
           <a href={`tel:${p.phone}`} className="inline-flex items-center gap-1 hover:underline">
             <Phone className="size-3" aria-hidden="true" />
@@ -120,6 +135,22 @@ export function PatientHeader({ ctx, onEpisodeChange }: { ctx: PatientCtx; onEpi
           {sponsor ? ` · ${sponsor}` : ""}
         </Item>
         <Item label="Doctor">{episode ? staffName(episode.doctorId) : "—"}</Item>
+        {canWallets ? (
+          <Item label="Paying account">
+            {wallet ? (
+              <Link href={`/accounts/${wallet.id}`} className="hover:underline">
+                {wallet.name} ·{" "}
+                <span className={cn("tabular-nums", walletAvailable <= 0 && "text-destructive")}>
+                  {formatMoney(walletAvailable)}
+                </span>
+              </Link>
+            ) : (
+              <Link href="?tab=billing" className="text-muted-foreground hover:underline">
+                None — open one
+              </Link>
+            )}
+          </Item>
+        ) : null}
       </dl>
     </section>
   );

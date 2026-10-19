@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuditPanel } from "@/components/admin/audit-panel";
+import { BrandingPanel } from "@/components/admin/branding-panel";
 import { ConfigPanel } from "@/components/admin/config-panel";
 import { DataToolsPanel } from "@/components/admin/data-tools-panel";
 import { PermissionMatrix } from "@/components/admin/permission-matrix";
@@ -18,6 +19,7 @@ export function AdminView() {
     { value: "users", label: "Users", show: can("admin.users") || can("admin.view") },
     { value: "roles", label: "Roles & permissions", show: true },
     { value: "config", label: "Configuration", show: true },
+    { value: "branding", label: "Branding & payments", show: true },
     { value: "audit", label: "Audit log", show: can("audit.view") || can("admin.settings") },
     { value: "data", label: "Data tools", show: true },
   ].filter((t) => t.show);
@@ -45,6 +47,9 @@ export function AdminView() {
         </TabsContent>
         <TabsContent value="config" className="mt-4">
           <ConfigPanel />
+        </TabsContent>
+        <TabsContent value="branding" className="mt-4">
+          <BrandingPanel />
         </TabsContent>
         <TabsContent value="audit" className="mt-4">
           <AuditPanel />

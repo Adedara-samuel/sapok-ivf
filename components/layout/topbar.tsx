@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Building2, CircleUser, LogOut, Menu, Moon, Search, Sparkles, Sun, UserCog } from "lucide-react";
+import { Bot, Building2, CircleUser, LifeBuoy, LogOut, Menu, Moon, Search, Sparkles, Sun, UserCog } from "lucide-react";
+import { useCan } from "@/hooks/use-permission";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,8 @@ export function Topbar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const branches = useSettingsStore((s) => s.branches);
   const user = useStaffStore((s) => s.staff.find((x) => x.id === userId));
   const startTour = useUiStore((s) => s.startTour);
+  const toggleAssistant = useUiStore((s) => s.toggleAssistant);
+  const can = useCan();
 
   return (
     <header className="bg-background/85 no-print sticky top-0 z-30 flex h-14 items-center gap-2 border-b px-3 backdrop-blur md:px-6">
@@ -112,6 +115,20 @@ export function Topbar({ onOpenPalette }: { onOpenPalette: () => void }) {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {can("ai.use") ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleAssistant}
+            aria-keyshortcuts="Control+J"
+            className="gap-1.5"
+            data-tour="ai"
+          >
+            <Bot aria-hidden="true" />
+            <span className="hidden md:inline">Ask AI</span>
+          </Button>
+        ) : null}
+
         <NotificationsBell />
 
         <Button
@@ -153,6 +170,11 @@ export function Topbar({ onOpenPalette }: { onOpenPalette: () => void }) {
             >
               <Sparkles aria-hidden="true" /> Start guided demo
             </DropdownMenuItem>
+            {can("admin.view") ? (
+              <DropdownMenuItem onSelect={() => router.push("/subscription")}>
+                <LifeBuoy aria-hidden="true" /> Subscription &amp; support
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() => {

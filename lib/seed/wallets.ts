@@ -235,7 +235,9 @@ export function addWalletSeed(data: SeedData, at: (offset: number, time?: string
         amount,
         balanceAfter: 0,
         description:
-          charges.length > 0 ? `Paid: ${charges.map((c) => c.description).join(", ")}` : `Charges on ${episode.ivfNo}`,
+          charges.length > 0
+            ? `Paid: ${charges.map((c) => c.description).join(", ")}`
+            : `Charges on ${episode.ivfNo} — receipt ${data.payments.find((p) => p.id === paymentId)?.receiptNo ?? "—"}`,
         personId: episode.patientId,
         episodeId: episode.id,
         paymentId,

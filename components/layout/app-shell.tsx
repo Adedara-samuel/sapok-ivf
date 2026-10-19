@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, CreditCard } from "lucide-react";
+import { AssistantPanel } from "@/components/ai/assistant-panel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { DemoTour } from "@/components/layout/demo-tour";
 import { Footer, ResetDemoButton } from "@/components/layout/footer";
@@ -11,9 +14,13 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { useHotkeys } from "@/hooks/use-hotkeys";
 import { useCan } from "@/hooks/use-permission";
+import { useSubscription } from "@/hooks/use-tenant";
 import { capabilityForPath } from "@/lib/permissions";
+import { STATUS_LABELS } from "@/lib/platform/subscription";
+import { applyTenant } from "@/lib/stores";
 import { audit } from "@/lib/stores/audit";
 import { useSessionStore } from "@/lib/stores/session";
+import { useUiStore } from "@/lib/stores/ui";
 import { formatDate, todayIso } from "@/lib/utils/dates";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -24,14 +31,27 @@ export function AppShell({ children }: { children: ReactNode }) {
   const seedDay = useSessionStore((s) => s.seedDay);
   const can = useCan();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const toggleAssistant = useUiStore((s) => s.toggleAssistant);
   const deniedRef = useRef<string | null>(null);
 
+  const { status, message, tenant } = useSubscription();
+  const suspended = status === "suspended";
   const required = capabilityForPath(pathname);
   const allowed = !required || can(required);
+  const lockedOut = suspended && pathname !== "/subscription";
+
+  // keep the read-only block in step with the subscription (it can change while the app is open)
+  useEffect(() => {
+    applyTenant(tenant);
+  }, [tenant]);
 
   useEffect(() => {
     if (!userId) {
       router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+      return;
+    }
+    if (lockedOut) {
+      router.replace("/subscription");
       return;
     }
     if (!allowed && deniedRef.current !== pathname) {
@@ -39,7 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       audit("access-denied", "route", `Access denied to ${pathname} (role: ${role ?? "none"})`);
       router.replace(`/forbidden?from=${encodeURIComponent(pathname)}`);
     }
-  }, [userId, allowed, pathname, role, router]);
+  }, [userId, allowed, pathname, role, router, lockedOut]);
 
   const hotkeys = useMemo(
     () => ({
@@ -56,12 +76,16 @@ export function AppShell({ children }: { children: ReactNode }) {
       n: () => {
         if (can("patients.create")) router.push("/patients/new");
       },
+      "mod+j": (e: KeyboardEvent) => {
+        e.preventDefault();
+        if (can("ai.use")) toggleAssistant();
+      },
     }),
-    [can, router],
+    [can, router, toggleAssistant],
   );
   useHotkeys(hotkeys, Boolean(userId));
 
-  if (!userId || !allowed) return null;
+  if (!userId || !allowed || lockedOut) return null;
   const stale = seedDay !== null && seedDay !== todayIso();
 
   return (
@@ -76,6 +100,20 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onOpenPalette={() => setPaletteOpen(true)} />
         <main id="main" className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 md:px-6">
+          {message && status !== "active" ? (
+            <Alert variant={status === "grace" ? "default" : "destructive"} className="no-print mb-4">
+              <CreditCard aria-hidden="true" />
+              <AlertTitle>{STATUS_LABELS[status]}</AlertTitle>
+              <AlertDescription className="flex flex-wrap items-center gap-3">
+                {message}
+                {can("admin.view") && pathname !== "/subscription" ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/subscription">Renew subscription</Link>
+                  </Button>
+                ) : null}
+              </AlertDescription>
+            </Alert>
+          ) : null}
           {stale ? (
             <Alert className="no-print mb-4">
               <CalendarClock aria-hidden="true" />
@@ -92,6 +130,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Footer />
       </div>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      {can("ai.use") ? <AssistantPanel /> : null}
       <DemoTour />
     </div>
   );

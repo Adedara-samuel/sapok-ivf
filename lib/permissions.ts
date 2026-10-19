@@ -251,6 +251,7 @@ export const ROUTE_CAPABILITIES: { prefix: string; capability: Capability }[] = 
   { prefix: "/reports", capability: "reports.view" },
   { prefix: "/requests", capability: "requests.create" },
   { prefix: "/admin", capability: "admin.view" },
+  { prefix: "/subscription", capability: "admin.view" },
 ];
 
 export function capabilityForPath(pathname: string): Capability | null {

@@ -3,17 +3,17 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { ThemeProvider } from "next-themes";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { TenantTheme } from "@/components/layout/tenant-theme";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { APP_CONFIG } from "@/lib/config";
 import { hydrateAllStores } from "@/lib/stores";
 
 function Splash() {
   return (
     <div className="bg-background flex min-h-screen items-center justify-center" role="status" aria-live="polite">
       <div className="flex flex-col items-center gap-3">
-        <BrandLogo className="h-14 animate-pulse" />
-        <p className="text-muted-foreground text-sm">Loading {APP_CONFIG.name}…</p>
+        <BrandLogo compact className="h-14 animate-pulse" />
+        <p className="text-muted-foreground text-sm">Loading…</p>
       </div>
     </div>
   );
@@ -31,7 +31,14 @@ function StoreGate({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, []);
-  return ready ? <>{children}</> : <Splash />;
+  return ready ? (
+    <>
+      <TenantTheme />
+      {children}
+    </>
+  ) : (
+    <Splash />
+  );
 }
 
 export function AppProviders({ children }: { children: ReactNode }) {

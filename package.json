@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "demo:video": "playwright test -c playwright.walkthrough.config.ts",
     "format": "prettier --write .",
     "prepare": "husky"
   },

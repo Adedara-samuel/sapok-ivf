@@ -46,6 +46,8 @@ import { fullName } from "@/lib/schemas/person";
 import { isCancelledDrug } from "@/lib/selectors/predicates";
 import { availableStock } from "@/lib/selectors/stock";
 import { cancelOrder } from "@/lib/services/workflows";
+import { useBillingStore } from "@/lib/stores/billing";
+import { useWalletStore } from "@/lib/stores/wallet";
 import { useEpisodeStore } from "@/lib/stores/episode";
 import { useOrderStore } from "@/lib/stores/orders";
 import { useSessionStore } from "@/lib/stores/session";
@@ -105,6 +107,13 @@ export function PharmacyView() {
   const aForm = useZodForm<AdjustForm>(adjustForm, { batchId: "", reason: "" });
 
   const epById = useMemo(() => new Map(episodes.map((e) => [e.id, e])), [episodes]);
+  const charges = useBillingStore((s) => s.charges);
+  const ledger = useWalletStore((s) => s.entries);
+  const chargeByOrder = useMemo(
+    () => new Map(charges.filter((c) => c.orderId).map((c) => [c.orderId as string, c])),
+    [charges],
+  );
+  const accountPaidCharges = useMemo(() => new Set(ledger.flatMap((e) => e.chargeIds ?? [])), [ledger]);
   const inBranch = (o: Order) => {
     const ep = epById.get(o.episodeId);
     return branch === "all" || ep?.branchId === branch;
@@ -181,6 +190,28 @@ export function PharmacyView() {
       meta: { align: "right" },
       cell: ({ row }) => formatMoney(row.original.amount),
     },
+    {
+      id: "payment",
+      header: "Payment",
+      accessorFn: (r) => chargeByOrder.get(r.id)?.status ?? "unpaid",
+      cell: ({ row }) => {
+        const charge = chargeByOrder.get(row.original.id);
+        if (!charge) return "—";
+        const fromAccount = accountPaidCharges.has(charge.id) && charge.status === "paid";
+        return (
+          <StatusChip
+            status={charge.status}
+            label={
+              fromAccount
+                ? "Paid · account"
+                : charge.status === "part-paid"
+                  ? `Part-paid ${formatMoney(charge.paid)}`
+                  : undefined
+            }
+          />
+        );
+      },
+    },
     { id: "by", header: "Prescriber", accessorFn: (r) => staffName(r.orderedBy) },
     {
       id: "actions",
@@ -197,7 +228,11 @@ export function PharmacyView() {
               }
               destructive={false}
               title={`Dispense ${row.original.name} × ${row.original.qty}?`}
-              description={`Stock will reduce from ${row.original.stock} to ${row.original.stock - row.original.qty} (earliest-expiring batch first). The charge is already on the patient's account.`}
+              description={`Stock will reduce from ${row.original.stock} to ${row.original.stock - row.original.qty} (earliest-expiring batch first). ${
+                chargeByOrder.get(row.original.id)?.status === "paid"
+                  ? "Already paid."
+                  : "Not fully paid yet — the charge is on the patient's bill and is deducted from their account as soon as funds arrive."
+              }`}
               confirmLabel="Dispense"
               onConfirm={() => {
                 run(() => dispense(row.original.id), {

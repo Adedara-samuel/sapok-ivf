@@ -41,7 +41,14 @@ function ClinicForm({ disabled }: { disabled: boolean }) {
             ),
           )}
         >
-          <TextField control={form.control} name="clinicName" label="Clinic name" required disabled={disabled} />
+          <TextField
+            control={form.control}
+            name="clinicName"
+            label="Clinic name"
+            required
+            disabled
+            description="Change the name in Branding & payments."
+          />
           <TextField
             control={form.control}
             name="currencySymbol"

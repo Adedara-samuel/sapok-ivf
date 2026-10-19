@@ -80,6 +80,17 @@ async function seedFor(tenant: Tenant | undefined): Promise<SeedData> {
   const { getSeed, emptySeed } = await import("@/lib/seed/build");
   if (tenant?.dataMode === "empty") return emptySeed(tenant.admin);
   const seed = getSeed();
+  // sample data carries the hospital's own name on account numbers and messages
+  if (tenant && tenant.slug !== DEFAULT_TENANT) {
+    const upper = tenant.name.toUpperCase();
+    seed.wallets.forEach((w) => {
+      if (w.virtualAccount)
+        w.virtualAccount.accountName = w.virtualAccount.accountName.replace(/^OVERCARE IVF/, upper).slice(0, 40);
+    });
+    seed.walletMessages.forEach((m) => {
+      m.body = m.body.replace(/^Overcare IVF/, tenant.name);
+    });
+  }
   // a newly onboarded hospital with sample data also gets its own admin as a user
   if (tenant && tenant.slug !== DEFAULT_TENANT && !seed.staff.some((s) => s.email === tenant.admin.email)) {
     seed.staff.push({

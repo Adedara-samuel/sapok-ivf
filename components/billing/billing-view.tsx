@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AccountPanel } from "@/components/billing/account-panel";
+import { SettlementsPanel } from "@/components/billing/settlements-panel";
 import { SimpleBarChart } from "@/components/charts/lazy";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { DataTable } from "@/components/shared/data-table";
@@ -43,6 +44,7 @@ export function BillingView() {
   const params = useSearchParams();
   const run = useRunAction();
   const canCollect = usePermission("billing.collect");
+  const canFinance = usePermission("reports.finance");
   const persons = usePersonStore((s) => s.persons);
   const episodes = useEpisodeStore((s) => s.episodes);
   const charges = useBillingStore((s) => s.charges);
@@ -290,7 +292,14 @@ export function BillingView() {
           <TabsTrigger value="report">Account report</TabsTrigger>
           <TabsTrigger value="packages">Packages</TabsTrigger>
           <TabsTrigger value="claims">HMO claims</TabsTrigger>
+          {canFinance ? <TabsTrigger value="settlements">Collections & settlements</TabsTrigger> : null}
         </TabsList>
+
+        {canFinance ? (
+          <TabsContent value="settlements" className="mt-4">
+            <SettlementsPanel />
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="accounts" className="mt-4 grid gap-4">
           <SectionCard title="Check account balance" description="Type a PRN, IVF number, name or phone.">

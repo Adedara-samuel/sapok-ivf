@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { NAV, type NavItem } from "@/components/layout/nav";
 import { useCan } from "@/hooks/use-permission";
+import { useActiveTenant } from "@/hooks/use-tenant";
 import { useSettingsStore } from "@/lib/stores/settings";
 import { useUiStore } from "@/lib/stores/ui";
 import { cn } from "@/lib/utils/cn";
@@ -26,6 +27,7 @@ export function SidebarNav({ collapsed = false, onNavigate }: { collapsed?: bool
   const search = useSearchParams().toString();
   const can = useCan();
   const clinicName = useSettingsStore((s) => s.clinic.clinicName);
+  const tenant = useActiveTenant();
 
   const renderItem = (item: NavItem) => {
     const active =
@@ -96,7 +98,9 @@ export function SidebarNav({ collapsed = false, onNavigate }: { collapsed?: bool
         {!collapsed ? (
           <span className="min-w-0 leading-tight">
             <span className="block truncate font-semibold">{clinicName}</span>
-            <span className="text-muted-foreground block truncate text-[11px]">IVF &amp; fertility care</span>
+            <span className="text-muted-foreground block truncate text-[11px]">
+              {tenant?.tagline || "IVF & fertility care"}
+            </span>
           </span>
         ) : null}
       </div>

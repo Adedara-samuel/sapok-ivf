@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
-import { KeyRound, LogIn, ShieldCheck } from "lucide-react";
+import { AlertTriangle, KeyRound, LogIn, ShieldCheck } from "lucide-react";
 import { TextField } from "@/components/forms/fields";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useSubscription } from "@/hooks/use-tenant";
+import { isSuperAdminLogin, usePlatformStore } from "@/lib/stores/platform";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,15 +47,20 @@ export function LoginScreen() {
   const params = useSearchParams();
   const staff = useStaffStore((s) => s.staff);
   const userId = useSessionStore((s) => s.userId);
+  const signInSuperAdmin = usePlatformStore((s) => s.signInSuperAdmin);
+  const { status, message, tenant } = useSubscription();
   const [pending, setPending] = useState<Staff | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const form = useZodForm<LoginInput>(loginSchema, { email: "", password: "" });
   const codeForm = useZodForm<CodeInput>(codeSchema, { code: "" });
-  const next = params.get("from") ?? "/dashboard";
+  const suspended = status === "suspended";
+  const next = suspended ? "/subscription" : (params.get("from") ?? "/dashboard");
+  const hospitalName = tenant?.name ?? APP_CONFIG.name;
+  const tagline = tenant?.tagline || APP_CONFIG.tagline;
 
   useEffect(() => {
-    if (userId) router.replace("/dashboard");
-  }, [userId, router]);
+    if (userId) router.replace(suspended ? "/subscription" : "/dashboard");
+  }, [userId, router, suspended]);
 
   const complete = (member: Staff) => {
     signIn(member);
@@ -61,6 +69,11 @@ export function LoginScreen() {
 
   const onSubmit = async (values: LoginInput) => {
     setFormError(null);
+    if (await isSuperAdminLogin(values.email, values.password)) {
+      signInSuperAdmin();
+      router.replace("/platform");
+      return;
+    }
     const member = staff.find((s) => s.email.toLowerCase() === values.email.toLowerCase());
     if (!member || !(await verifyPassword(member.id, values.password))) {
       audit("access-denied", "session", `Failed sign-in attempt for ${values.email}`);
@@ -71,6 +84,12 @@ export function LoginScreen() {
     }
     if (!member.active) {
       setFormError("This account has been deactivated. Ask an administrator to reactivate it.");
+      return;
+    }
+    if (suspended && member.role !== "admin") {
+      setFormError(
+        `${hospitalName} is suspended. Only the hospital administrator can sign in to renew or contact support.`,
+      );
       return;
     }
     if (TWO_FACTOR_ROLES.includes(member.role)) {
@@ -103,10 +122,10 @@ export function LoginScreen() {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <section className="from-primary relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br to-[#0b4f4a] p-10 text-white lg:flex">
+      <section className="from-primary relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br to-[color-mix(in_srgb,var(--primary)_55%,black)] p-10 text-white lg:flex">
         <div className="grid gap-3">
           <BrandLogo variant="white" className="h-14 self-start" />
-          <p className="text-sm font-medium tracking-wide text-white/80 uppercase">IVF &amp; fertility care</p>
+          <p className="text-sm font-medium tracking-wide text-white/80 uppercase">{tagline}</p>
         </div>
         <div className="max-w-md">
           <h1 className="text-3xl leading-tight font-semibold">
@@ -123,10 +142,17 @@ export function LoginScreen() {
 
       <section className="flex flex-col items-center justify-center gap-6 p-6 lg:p-10">
         <div className="flex flex-col items-center gap-2 text-center">
-          <BrandLogo className="h-14" />
-          <p className="text-lg font-semibold">{APP_CONFIG.name}</p>
-          <p className="text-muted-foreground text-sm">{APP_CONFIG.tagline}</p>
+          <BrandLogo compact className="h-14" />
+          <p className="text-lg font-semibold">{hospitalName}</p>
+          <p className="text-muted-foreground text-sm">{tagline}</p>
         </div>
+        {message && status !== "active" ? (
+          <Alert variant={suspended ? "destructive" : "default"} className="w-full max-w-md">
+            <AlertTriangle aria-hidden="true" />
+            <AlertTitle>{suspended ? "Hospital suspended" : "Subscription notice"}</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        ) : null}
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">

@@ -5,6 +5,7 @@ import {
   Clock,
   HeartHandshake,
   LayoutDashboard,
+  LifeBuoy,
   MessagesSquare,
   Microscope,
   Pill,
@@ -12,6 +13,7 @@ import {
   UserPlus,
   Users,
   Wallet,
+  WalletCards,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "@/lib/permissions";
@@ -45,6 +47,7 @@ export const NAV: NavGroup[] = [
           { label: "New Registration", href: "/patients/new", capability: "patients.create" },
         ],
       },
+      { label: "Family & Patient Accounts", href: "/accounts", icon: WalletCards, capability: "wallets.view" },
     ],
   },
   {
@@ -81,6 +84,7 @@ export const NAV: NavGroup[] = [
         ],
       },
       { label: "Admin", href: "/admin", icon: ShieldCheck, capability: "admin.view" },
+      { label: "Subscription & Support", href: "/subscription", icon: LifeBuoy, capability: "admin.view" },
     ],
   },
 ];
