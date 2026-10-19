@@ -22,6 +22,9 @@ export const CAPABILITIES = [
   "billing.view",
   "billing.collect",
   "billing.refund",
+  "wallets.view",
+  "wallets.manage",
+  "wallets.credit",
   "counselling.view",
   "counselling.manage",
   "donors.view",
@@ -42,6 +45,7 @@ export const CAPABILITIES = [
   "admin.users",
   "admin.settings",
   "audit.view",
+  "ai.use",
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
@@ -67,7 +71,18 @@ export const CAPABILITY_GROUPS: { label: string; items: Capability[] }[] = [
       "files.close",
     ],
   },
-  { label: "Finance", items: ["billing.view", "billing.collect", "billing.refund", "reports.finance"] },
+  {
+    label: "Finance",
+    items: [
+      "billing.view",
+      "billing.collect",
+      "billing.refund",
+      "wallets.view",
+      "wallets.manage",
+      "wallets.credit",
+      "reports.finance",
+    ],
+  },
   {
     label: "Programmes & lab",
     items: [
@@ -95,11 +110,12 @@ export const CAPABILITY_GROUPS: { label: string; items: Capability[] }[] = [
       "admin.users",
       "admin.settings",
       "audit.view",
+      "ai.use",
     ],
   },
 ];
 
-const COMMON: Capability[] = ["dashboard.view", "requests.create"];
+const COMMON: Capability[] = ["dashboard.view", "requests.create", "ai.use"];
 
 export const DEFAULT_ROLE_CAPABILITIES: Record<StaffRole, Capability[]> = {
   frontdesk: [
@@ -110,6 +126,8 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<StaffRole, Capability[]> = {
     "patients.create",
     "patients.edit",
     "billing.view",
+    "wallets.view",
+    "wallets.manage",
     "documents.manage",
   ],
   doctor: [
@@ -184,6 +202,8 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<StaffRole, Capability[]> = {
     "billing.view",
     "billing.collect",
     "billing.refund",
+    "wallets.view",
+    "wallets.manage",
     "reports.view",
     "reports.finance",
   ],
@@ -194,6 +214,7 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<StaffRole, Capability[]> = {
     "patients.view",
     "clinical.view",
     "billing.view",
+    "wallets.view",
     "counselling.view",
     "donors.view",
     "surrogates.view",
@@ -226,6 +247,7 @@ export const ROUTE_CAPABILITIES: { prefix: string; capability: Capability }[] = 
   { prefix: "/embryology", capability: "embryology.view" },
   { prefix: "/pharmacy", capability: "pharmacy.view" },
   { prefix: "/billing", capability: "billing.view" },
+  { prefix: "/accounts", capability: "wallets.view" },
   { prefix: "/reports", capability: "reports.view" },
   { prefix: "/requests", capability: "requests.create" },
   { prefix: "/admin", capability: "admin.view" },

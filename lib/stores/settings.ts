@@ -44,6 +44,8 @@ export interface SettingsState {
     patch: Partial<Pick<ConsentTemplateConfig, "title" | "version" | "body">>,
   ) => void;
   updateProtocol: (id: ProtocolTemplate["id"], patch: Partial<Pick<ProtocolTemplate, "description" | "drugs">>) => void;
+  /** Applies the hospital's name and branches from its platform profile (no audit: not a user action). */
+  setBranding: (clinicName: string, branches: Branch[]) => void;
   reset: () => void;
 }
 
@@ -61,46 +63,70 @@ const defaults = () => ({
   protocols: structuredClone(PROTOCOL_TEMPLATES),
 });
 
-export const useSettingsStore = createDomainStore<SettingsState>("settings", (set, get) => ({
-  ...defaults(),
-  updateClinic: (input) => {
-    const clinic = validate(clinicSettingsSchema, input);
-    set((s) => {
-      s.clinic = clinic;
+/** Capabilities added after v1; saved permission matrices get the defaults for these merged in. */
+const ADDED_IN_V2: Capability[] = ["wallets.view", "wallets.manage", "wallets.credit", "ai.use"];
+
+function migrateSettings(persisted: unknown, version: number): unknown {
+  const state = persisted as { matrix?: PermissionMatrix } | null;
+  if (version < 2 && state?.matrix) {
+    (Object.keys(DEFAULT_ROLE_CAPABILITIES) as StaffRole[]).forEach((role) => {
+      const added = DEFAULT_ROLE_CAPABILITIES[role].filter((c) => ADDED_IN_V2.includes(c));
+      const current = state.matrix?.[role] ?? [];
+      if (state.matrix) state.matrix[role] = [...current, ...added.filter((c) => !current.includes(c))];
     });
-    audit("update", "settings", "Updated clinic configuration");
-  },
-  toggleCapability: (role, capability) => {
-    if (role === "admin" && (capability === "admin.view" || capability === "admin.settings"))
-      throw new DomainError("Admins must keep access to administration to avoid lock-out");
-    const has = get().matrix[role].includes(capability);
-    set((s) => {
-      s.matrix[role] = has ? s.matrix[role].filter((c) => c !== capability) : [...s.matrix[role], capability];
-    });
-    audit("update", "permission", `${has ? "Revoked" : "Granted"} ${capability} for role ${role}`);
-  },
-  updateProcedureForm: (type, patch) => {
-    set((s) => {
-      const form = s.procedureForms.find((f) => f.type === type);
-      if (form) Object.assign(form, patch);
-    });
-    audit("update", "settings", `Updated procedure form ${type}`);
-  },
-  updateConsentTemplate: (id, patch) => {
-    if (patch.title !== undefined && patch.title.trim().length < 3)
-      throw new DomainError("Title is too short", { title: "Title is too short" });
-    set((s) => {
-      const t = s.consentTemplates.find((c) => c.id === id);
-      if (t) Object.assign(t, patch);
-    });
-    audit("update", "settings", `Updated consent template ${id}`);
-  },
-  updateProtocol: (id, patch) => {
-    set((s) => {
-      const p = s.protocols.find((x) => x.id === id);
-      if (p) Object.assign(p, patch);
-    });
-    audit("update", "settings", `Updated protocol template ${id}`);
-  },
-  reset: () => set(() => defaults()),
-}));
+  }
+  return state;
+}
+
+export const useSettingsStore = createDomainStore<SettingsState>(
+  "settings",
+  (set, get) => ({
+    ...defaults(),
+    updateClinic: (input) => {
+      const clinic = validate(clinicSettingsSchema, input);
+      set((s) => {
+        s.clinic = clinic;
+      });
+      audit("update", "settings", "Updated clinic configuration");
+    },
+    toggleCapability: (role, capability) => {
+      if (role === "admin" && (capability === "admin.view" || capability === "admin.settings"))
+        throw new DomainError("Admins must keep access to administration to avoid lock-out");
+      const has = get().matrix[role].includes(capability);
+      set((s) => {
+        s.matrix[role] = has ? s.matrix[role].filter((c) => c !== capability) : [...s.matrix[role], capability];
+      });
+      audit("update", "permission", `${has ? "Revoked" : "Granted"} ${capability} for role ${role}`);
+    },
+    updateProcedureForm: (type, patch) => {
+      set((s) => {
+        const form = s.procedureForms.find((f) => f.type === type);
+        if (form) Object.assign(form, patch);
+      });
+      audit("update", "settings", `Updated procedure form ${type}`);
+    },
+    updateConsentTemplate: (id, patch) => {
+      if (patch.title !== undefined && patch.title.trim().length < 3)
+        throw new DomainError("Title is too short", { title: "Title is too short" });
+      set((s) => {
+        const t = s.consentTemplates.find((c) => c.id === id);
+        if (t) Object.assign(t, patch);
+      });
+      audit("update", "settings", `Updated consent template ${id}`);
+    },
+    updateProtocol: (id, patch) => {
+      set((s) => {
+        const p = s.protocols.find((x) => x.id === id);
+        if (p) Object.assign(p, patch);
+      });
+      audit("update", "settings", `Updated protocol template ${id}`);
+    },
+    setBranding: (clinicName, branches) =>
+      set((s) => {
+        s.clinic.clinicName = clinicName;
+        s.branches = branches;
+      }),
+    reset: () => set(() => defaults()),
+  }),
+  { version: 2, migrate: migrateSettings },
+);

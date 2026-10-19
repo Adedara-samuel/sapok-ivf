@@ -35,6 +35,7 @@ export const RequestKind = z.enum([
   "confirmation",
   "refund",
   "file-reopen",
+  "wallet-refund",
 ]);
 export type RequestKind = z.infer<typeof RequestKind>;
 export const RequestStatus = z.enum(["pending", "approved", "rejected"]);

@@ -208,7 +208,7 @@ export function RequestsView() {
           </TabsList>
         </Tabs>
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Request type">
-          {["all", ...STAFF_KINDS, "refund", "file-reopen"].map((k) => (
+          {["all", ...STAFF_KINDS, "refund", "wallet-refund", "file-reopen"].map((k) => (
             <Toggle
               key={k}
               pressed={kind === k}

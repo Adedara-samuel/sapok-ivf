@@ -29,7 +29,7 @@ export const createRequestSchema = z
     message: "End date must be on or after the start date",
     path: ["endDate"],
   })
-  .refine((r) => !["reimbursement", "refund"].includes(r.kind) || (r.amount ?? 0) > 0, {
+  .refine((r) => !["reimbursement", "refund", "wallet-refund"].includes(r.kind) || (r.amount ?? 0) > 0, {
     message: "Enter the amount",
     path: ["amount"],
   });
@@ -44,6 +44,7 @@ export const REQUEST_KIND_LABELS: Record<StaffRequest["kind"], string> = {
   confirmation: "Confirmation",
   refund: "Refund",
   "file-reopen": "File reopen",
+  "wallet-refund": "Account balance refund",
 };
 
 type DecisionListener = (request: StaffRequest) => void;

@@ -199,6 +199,7 @@ export const useBillingStore = createDomainStore<BillingState>("billing", (set, 
       episodeId,
       status: "pending",
       requestId,
+      destination: "cash",
       requestedBy: currentActorId(),
       at: nowIso(),
     });
@@ -206,6 +207,29 @@ export const useBillingStore = createDomainStore<BillingState>("billing", (set, 
       s.refunds.push(refund);
     });
     audit("create", "refund", `Requested refund of ${formatMoney(refund.amount)}`, episodeId);
+    return refund;
+  },
+  returnToWallet: (episodeId, amount, reason) => {
+    const s0 = get();
+    const available = Math.min(
+      unallocated(s0.charges, s0.payments, s0.refunds, episodeId),
+      walletFundedNet(episodeId, s0.payments, s0.refunds),
+    );
+    assert(amount > 0 && amount <= available, `Only ${formatMoney(Math.max(0, available))} can be returned`);
+    const refund = validate(refundSchema, {
+      id: newId("RFD"),
+      episodeId,
+      amount,
+      reason: reason.length >= 5 ? reason : `Returned to account: ${reason}`,
+      status: "approved",
+      destination: "wallet",
+      requestedBy: currentActorId(),
+      at: nowIso(),
+    });
+    set((s) => {
+      s.refunds.push(refund);
+    });
+    audit("update", "refund", `Returned ${formatMoney(amount)} to the patient account — ${reason}`, episodeId);
     return refund;
   },
   applyRefundDecision: (request) => {
