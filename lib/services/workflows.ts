@@ -1,7 +1,8 @@
 import type { Staff, StaffRequest, StaffRole } from "@/lib/schemas/admin";
 import { audit } from "@/lib/stores/audit";
 import { useBillingStore, type RefundRequestInput } from "@/lib/stores/billing";
-import { assert, DomainError } from "@/lib/stores/core";
+import { assert, assertWritable, DomainError } from "@/lib/stores/core";
+import { useWalletStore } from "@/lib/stores/wallet";
 import { useCycleStore } from "@/lib/stores/cycle";
 import { useEmbryologyStore } from "@/lib/stores/embryology";
 import { useEpisodeStore } from "@/lib/stores/episode";
@@ -45,8 +46,12 @@ function payerForEpisode(episodeId: string) {
   return patient?.payer.category ?? "self-pay";
 }
 
-/** Places an order and raises its charge in one step (orders always create charges). */
+/**
+ * Places an order and raises its charge in one step (orders always create charges). If the patient belongs to an
+ * account with auto-debit on, the charge is paid from that account immediately.
+ */
 export function placeOrder(episodeId: string, input: PlaceOrderInput): Order {
+  assertWritable();
   const payer = payerForEpisode(episodeId);
   const order = useOrderStore.getState().place(episodeId, input);
   useBillingStore.getState().addCharge({
@@ -57,12 +62,16 @@ export function placeOrder(episodeId: string, input: PlaceOrderInput): Order {
     amount: order.amount,
     payer,
   });
+  useWalletStore.getState().autoDebitEpisode(episodeId);
   return order;
 }
 
+/** Cancels an order, waives its charge, and returns anything the patient account already paid for it. */
 export function cancelOrder(orderId: string, reason: string): Order {
+  assertWritable();
   const order = useOrderStore.getState().cancel(orderId, reason);
   useBillingStore.getState().waiveForOrder(orderId);
+  useWalletStore.getState().returnEpisodeCredit(order.episodeId, `${order.name} cancelled`);
   return order;
 }
 

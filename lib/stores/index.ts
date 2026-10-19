@@ -1,6 +1,12 @@
 import type { SeedData } from "@/lib/seed/types";
 import { APP_CONFIG } from "@/lib/config";
+import type { Tenant } from "@/lib/schemas/platform";
+import { effectiveStatus, statusMessage } from "@/lib/platform/subscription";
 import { audit, useAuditStore } from "@/lib/stores/audit";
+import { hasPersisted, setWriteBlock } from "@/lib/stores/core";
+import { usePlatformStore } from "@/lib/stores/platform";
+import { useWalletStore } from "@/lib/stores/wallet";
+import { activeTenantSlug, DEFAULT_TENANT, scopedKey, setActiveTenantSlug } from "@/lib/tenancy";
 import { useBillingStore } from "@/lib/stores/billing";
 import { useClinicalStore } from "@/lib/stores/clinical";
 import { useConsentStore } from "@/lib/stores/consent";
@@ -48,50 +54,97 @@ export const DATA_STORES: DataStore[] = [
   useRequestStore,
   useNotificationStore,
   useWaitingStore,
+  useWalletStore,
 ];
 
-const ALL_STORES: Hydratable[] = [...DATA_STORES, useSettingsStore, useSessionStore, useUiStore, useCredentialStore];
+const TENANT_STORES: Hydratable[] = [...DATA_STORES, useSettingsStore, useSessionStore, useUiStore, useCredentialStore];
+
+/**
+ * Bump when the shape or meaning of seeded data changes. Saved demo data from an older version is replaced by the
+ * new seed in one go, so related stores (e.g. billing and accounts) never disagree after an upgrade.
+ */
+export const DATA_VERSION = 2;
+const versionKey = () => scopedKey(`${APP_CONFIG.storagePrefix}:data-version`);
 
 // Cross-domain reactions to approvals (one approvals engine, many consumers).
 onRequestDecided((request) => useBillingStore.getState().applyRefundDecision(request));
+onRequestDecided((request) => useWalletStore.getState().applyWithdrawalDecision(request));
+
+/** The hospital whose data is loaded in this browser tab. */
+export function activeTenant(): Tenant | undefined {
+  const slug = activeTenantSlug();
+  return usePlatformStore.getState().tenants.find((t) => t.slug === slug);
+}
+
+async function seedFor(tenant: Tenant | undefined): Promise<SeedData> {
+  const { getSeed, emptySeed } = await import("@/lib/seed/build");
+  if (tenant?.dataMode === "empty") return emptySeed(tenant.admin);
+  const seed = getSeed();
+  // a newly onboarded hospital with sample data also gets its own admin as a user
+  if (tenant && tenant.slug !== DEFAULT_TENANT && !seed.staff.some((s) => s.email === tenant.admin.email)) {
+    seed.staff.push({
+      id: "S99",
+      name: tenant.admin.name,
+      role: "admin",
+      email: tenant.admin.email,
+      phone: tenant.admin.phone,
+      branchId: "BR-01",
+      active: true,
+    });
+  }
+  return seed;
+}
+
+/** Applies the hospital's platform profile (name, branch) and its subscription state to the loaded stores. */
+export function applyTenant(tenant: Tenant | undefined): void {
+  if (!tenant) return;
+  const settings = useSettingsStore.getState();
+  const branches =
+    tenant.slug === DEFAULT_TENANT
+      ? settings.branches.map((b) =>
+          b.name === "RHV IVF Centre, Redemption City" ? { ...b, name: "Overcare IVF Centre, Redemption City" } : b,
+        )
+      : [{ id: "BR-01", name: `${tenant.name}, ${tenant.city}`, short: tenant.city, address: tenant.address }];
+  if (settings.clinic.clinicName !== tenant.name || JSON.stringify(settings.branches) !== JSON.stringify(branches)) {
+    settings.setBranding(tenant.name, branches);
+  }
+  const session = useSessionStore.getState();
+  if (!branches.some((b) => b.id === session.branchId)) session.switchBranch(branches[0]?.id ?? "BR-01");
+  const status = effectiveStatus(tenant, todayIso());
+  setWriteBlock(status === "read-only" || status === "suspended" ? statusMessage(tenant, todayIso()) : null);
+}
 
 /** Loads persisted data; stores with nothing saved yet are filled from the seed (computed only when needed). */
 export async function hydrateAllStores(): Promise<void> {
-  await Promise.all(ALL_STORES.map((s) => s.persist.rehydrate()));
-  const settings = useSettingsStore.getState();
-  const clinicName = settings.clinic.clinicName === "RHV IVF" ? APP_CONFIG.name : settings.clinic.clinicName;
-  const branches = settings.branches.map((branch) =>
-    branch.name === "RHV IVF Centre, Redemption City"
-      ? { ...branch, name: "Overcare IVF Centre, Redemption City" }
-      : branch,
-  );
-  if (
-    clinicName !== settings.clinic.clinicName ||
-    branches.some((branch, index) => branch.name !== settings.branches[index]?.name)
-  ) {
-    useSettingsStore.setState({ clinic: { ...settings.clinic, clinicName }, branches });
+  await usePlatformStore.persist.rehydrate();
+  if (!activeTenant()) setActiveTenantSlug(DEFAULT_TENANT);
+  const tenant = activeTenant();
+  await Promise.all(TENANT_STORES.map((s) => s.persist.rehydrate()));
+
+  const missing = DATA_STORES.filter((s) => !hasPersisted(s.persist.getOptions().name ?? ""));
+  const outdated = missing.length < DATA_STORES.length && localStorage.getItem(versionKey()) !== String(DATA_VERSION);
+  if (missing.length > 0 || outdated) {
+    const seed = await seedFor(tenant);
+    (outdated ? DATA_STORES : missing).forEach((s) => s.getState().reset(seed));
+    if (outdated) audit("reset", "system", "Demo upgraded — data refreshed to the new seed");
   }
-  const missing = DATA_STORES.filter((s) => {
-    const key = s.persist.getOptions().name;
-    return !key || localStorage.getItem(key) === null;
-  });
-  if (missing.length > 0) {
-    const { getSeed } = await import("@/lib/seed/build");
-    const seed = getSeed();
-    missing.forEach((s) => s.getState().reset(seed));
-  }
+  localStorage.setItem(versionKey(), String(DATA_VERSION));
+  if (!hasPersisted(useSettingsStore.persist.getOptions().name ?? "")) useSettingsStore.getState().reset();
+
+  applyTenant(tenant);
   const session = useSessionStore.getState();
   if (!session.seedDay) session.setSeedDay(todayIso());
 }
 
 /** Restore every data store to the exact seed and write one audit event. */
 export async function rootReset(): Promise<void> {
-  const { getSeed } = await import("@/lib/seed/build");
-  const seed = getSeed();
+  const tenant = activeTenant();
+  const seed = await seedFor(tenant);
   DATA_STORES.forEach((store) => store.getState().reset(seed));
   useSettingsStore.getState().reset();
   useCredentialStore.getState().reset();
   useSessionStore.getState().setSeedDay(seed.anchor);
+  applyTenant(tenant);
   audit("reset", "system", "Demo data reset to seed");
 }
 
@@ -117,6 +170,9 @@ export function exportAllData(): Record<string, unknown> {
     orders: (({ orders, batches, movements }) => ({ orders, batches, movements }))(useOrderStore.getState()),
     billing: (({ charges, payments, refunds, claims }) => ({ charges, payments, refunds, claims }))(
       useBillingStore.getState(),
+    ),
+    accounts: (({ wallets, entries, settlements, messages }) => ({ wallets, entries, settlements, messages }))(
+      useWalletStore.getState(),
     ),
     programme: (({ donors, surrogates }) => ({ donors, surrogates }))(useProgrammeStore.getState()),
     counselling: useCounsellingStore.getState().records,

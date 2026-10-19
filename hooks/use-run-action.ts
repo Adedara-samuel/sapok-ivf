@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import type { FieldValues, Path, UseFormSetError } from "react-hook-form";
 import { toast } from "sonner";
-import { isDomainError } from "@/lib/stores/core";
+import { assertWritable, isDomainError } from "@/lib/stores/core";
 
 /**
  * Runs a store action, shows a toast, and maps DomainError field errors back onto the form.
@@ -13,9 +13,15 @@ export function useRunAction() {
   return useCallback(
     <T, F extends FieldValues = FieldValues>(
       fn: () => T,
-      opts: { success?: string | ((r: T) => string); setError?: UseFormSetError<F> } = {},
+      opts: {
+        success?: string | ((r: T) => string);
+        setError?: UseFormSetError<F>;
+        /** Allowed while the hospital is read-only (subscription payment, support tickets, sign-out…). */
+        allowReadOnly?: boolean;
+      } = {},
     ): T | undefined => {
       try {
+        if (!opts.allowReadOnly) assertWritable();
         const result = fn();
         if (opts.success) toast.success(typeof opts.success === "function" ? opts.success(result) : opts.success);
         return result;
